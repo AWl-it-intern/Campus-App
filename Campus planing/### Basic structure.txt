@@ -1,0 +1,24 @@
+### Basic structure: 
+
+src/
+  pages/
+    candidate/
+      CandidateLogin.jsx
+      CandidateRegister.jsx
+      CandidateDashboard.jsx
+
+    hr/
+      HRDashboard.jsx
+
+    panelist/
+      PanelistDashboard.jsx
+
+    common/
+      NotFound.jsx
+      Unauthorized.jsx
+
+  routes/
+    AppRoutes.jsx
+
+  App.jsx
+  main.jsx
