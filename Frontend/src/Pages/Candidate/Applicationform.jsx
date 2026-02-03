@@ -97,7 +97,7 @@ export default function ApplicationForm() {
             <h3 className="font-semibold text-[#0d9488] mb-3 text-lg">Document</h3>
             <label className="w-full text-center cursor-pointer flex items-center justify-center p-3
                    bg-linear-to-r from-[#14b8a6] to-[#4ade80] 
-                   text-white font-medium">
+                   text-black font-medium">
               Resume
               <input type="file" name="resume" accept=".pdf,.doc,.docx" onChange={handleChange} className="hidden" />
             </label>
