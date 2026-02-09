@@ -6,6 +6,7 @@ src/
       CandidateLogin.jsx
       CandidateRegister.jsx
       CandidateDashboard.jsx
+      Applicationform.jsx -> this is the tab on the dashboard and will show the flow process. 
 
     hr/
       HRDashboard.jsx

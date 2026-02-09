@@ -1,47 +1,45 @@
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from "@react-oauth/google";
 
-
-
 export default function Login() {
+  // login with google logic:
+  const navigate = useNavigate();
 
-// login with google logic: 
-const navigate = useNavigate();
-const googleLogin = useGoogleLogin({
-  onSuccess: (tokenResponse) => {
-    console.log("Google login success:", tokenResponse);
+  const googleLogin = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      console.log("Google login success:", tokenResponse);
 
-    // ✅ Set login flag
-    localStorage.setItem("candidate_auth", "true");
+      // ✅ Set login flag
+      localStorage.setItem("candidate_auth", "true");
 
-    // ✅ Redirect to dashboard first
-    navigate("/candidate-dashboard");
+      // ✅ Redirect to dashboard first
+      navigate("/candidate-dashboard");
 
-    // ✅ Fetch user info
-    (async () => {
-      try {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`,
-          },
-        });
-        const user = await res.json();
+      // ✅ Fetch user info
+      (async () => {
+        try {
+          const res = await fetch(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            {
+              headers: {
+                Authorization: `Bearer ${tokenResponse.access_token}`,
+              },
+            },
+          );
+          const user = await res.json();
 
-        // Save user name in localStorage
-        localStorage.setItem("candidate_name", user.name);
+          // Save user name in localStorage
+          localStorage.setItem("candidate_name", user.name);
 
-        // Show welcome alert
-        alert(`Welcome, ${user.name}!`);
-      } catch (err) {
-        console.error("Failed to fetch user info", err);
-      }
-    })();
-  },
-  onError: () => {
-    console.log("Google login failed");
-  },
-});
-
+        } catch (err) {
+          console.error("Failed to fetch user info", err);
+        }
+      })();
+    },
+    onError: () => {
+      console.log("Google login failed");
+    },
+  });
 
   return (
     <div className="min-h-screen bg-linear-to-br from-[#baf0fb] to-[#c9f2a8] flex flex-col relative">
@@ -109,7 +107,12 @@ const googleLogin = useGoogleLogin({
             </div>
 
             {/* Primary Sign in Button */}
-            <button className="btn w-full bg-linear-to-r from-[#14b8a6] to-[#4ade80] text-white font-semibold hover:opacity-90 cursor-pointer h-10">
+            <button
+              onClick={() => {
+               
+              }}
+              className="btn w-full bg-linear-to-r from-[#14b8a6] to-[#4ade80] text-white font-semibold hover:opacity-90 cursor-pointer h-10"
+            >
               Sign in
             </button>
 
