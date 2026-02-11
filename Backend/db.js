@@ -9,8 +9,8 @@ const dbName = process.env.DB_NAME;
 const client = new MongoClient(uri, {
   tls: true,
   tlsAllowInvalidCertificates: true, // dev only
-  serverSelectionTimeoutMS: 5000, // 👈 YOU ALREADY HAD THIS
-  connectTimeoutMS: 5000,         // 👈 ADD THIS
+  serverSelectionTimeoutMS: 5000, 
+  connectTimeoutMS: 5000,         
 });
 
 
@@ -50,7 +50,7 @@ export async function insertCandidate(candidateData) {
 }
 
 /* -------- Print Candidates -------- */
-export async function printCandidates(limit = 10) {
+export async function printCandidates(limit = 10, debug = false) {
   if (!db) {
     throw new Error("DB not connected. Call connectDB() first.");
   }
@@ -61,13 +61,76 @@ export async function printCandidates(limit = 10) {
     .limit(limit)
     .toArray();
 
-  console.log(
-    `📄 Candidate collection | Count: ${candidates.length}`
-  );
-  console.table(candidates);
+  if (debug) {
+    console.log(`📄 Candidate collection | Count: ${candidates.length}`);
+    console.table(candidates);
+  }
 
   return candidates;
 }
+
+
+/* -------- Insert Job -------- */
+export async function insertJob(jobData) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  if (!jobData?.JobID) {
+    throw new Error("Job ID is required");
+  }
+
+  const result = await db.collection("Jobs").insertOne({
+    ...jobData,
+    createdAt: new Date(),
+  });
+
+  console.log("✅ Job inserted:", result.insertedId);
+
+  return result;
+}
+
+/* -------- Print Jobs -------- */
+export async function printJobs(limit = 10, debug = false) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const jobs = await db
+    .collection("Jobs")
+    .find({})
+    .limit(limit)
+    .toArray();
+
+  if (debug) {
+    console.log(`📄 Job collection | Count: ${jobs.length}`);
+    console.table(jobs);
+  }
+
+  return jobs;
+}
+
+//  Insert Users ---------------------------------------
+export async function insertUsers(UserData) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  if (!UserData?.email && !UserData?.password) {
+    throw new Error("Please Enter required fields First!!");
+  }
+
+  const result = await db.collection("Users").insertOne({
+    ...UserData,
+    Role : "Candidate",
+    createdAt: new Date(),
+  });
+
+  console.log("✅ User inserted:", result.insertedId);
+
+  return result;
+}
+
 
 /* -------- Close -------- */
 export async function closeDB() {

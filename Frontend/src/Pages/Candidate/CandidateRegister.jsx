@@ -1,7 +1,32 @@
 import { useState } from "react";
+// import axios from "axios";
 
+const API_BASE = "http://localhost:5000";
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 64;
+
+
+// const [NewUsers, setNewUsers] = useState({
+//     Role: "Candidate",
+//     email: "",
+//     password :"",
+//   });
+
+// const createUsers = async () => {
+//     try {
+//       await axios.post(`${API_BASE}/Users`, NewUsers);
+
+//       alert("New User Inserted to Db Successfully!!!");
+
+//       // clear form
+//       setNewUsers({ email: "", password:""});
+
+//     } catch (err) {
+//       console.error("Error creating candidate:", err);
+//       alert("Failed to create candidate");
+//     }
+//   };
+
 
 export default function Registration() {
   const [password, setPassword] = useState("");

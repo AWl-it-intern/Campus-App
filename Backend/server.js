@@ -2,18 +2,21 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from 'cors';
 
-
 import {
   connectDB,
   closeDB,
   insertCandidate,
   printCandidates,
+  insertJob,
+  printJobs,
+  insertUsers,
 } from "./db.js";
+
 
 dotenv.config();
 
 const app = express();
-app.use(cors());  
+app.use(cors());
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
@@ -45,7 +48,7 @@ app.post("/candidate", async (req, res) => {
 /* -------- Print Candidates API -------- */
 app.get("/print-candidates", async (req, res) => {
   try {
-    const data = await printCandidates(10);
+    const data = await printCandidates(10, true);
 
     res.json({
       success: true,
@@ -57,6 +60,61 @@ app.get("/print-candidates", async (req, res) => {
       success: false,
       error: err.message,
     });
+  }
+});
+
+/* -------- Insert Job -------- */
+app.post("/job", async (req, res) => {
+  try {
+    const result = await insertJob(req.body);
+
+    // 👇 DEV ONLY: print after insert
+    await printJobs(5);
+
+    res.status(201).json({
+      success: true,
+      id: result.insertedId,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+/* -------- Print Jobs API -------- */
+app.get("/print-jobs", async (req, res) => {
+  try {
+    const data = await printJobs(10, true);
+
+    res.json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+// Insert Users ----------------------------
+app.post("/Users", async (req, res) => {
+  try {
+    const result = await insertUsers(req.body);
+    res.status(201).json({
+      success: true,
+      id: result.insertedId,
+    });
+  }
+  catch (err) {
+    res.status(400).json({
+      success: false,
+      error: err.message,
+    })
   }
 });
 
@@ -78,3 +136,5 @@ process.on("SIGINT", async () => {
   await closeDB();
   process.exit(0);
 });
+
+

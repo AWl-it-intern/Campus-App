@@ -3,11 +3,13 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import CandidateLogin from "../Pages/Candidate/CandidateLogin";
 import CandidateRegister from "../Pages/Candidate/CandidateRegister";
 import CandidateDashboard from "../Pages/Candidate/CandidateDashboard";
-import HRDashboard from "../Pages/HR/HRDashboard";
 import ApplicationForm from "../Pages/Candidate/Applicationform";
 import NotFound from "../Pages/Common/NotFound";
 import ProtectedRoute from "./ProtectedRoute";
 import AdminDashboard from "../Pages/Admin/AdminDashboard";
+import CreateJob from "../Pages/Admin/CreateJob";
+import CreateUsers from "../Pages/Admin/CreateUsers"
+import AdminLogin from "../Pages/Admin/AdminLogin";
 
 export default function AppRoutes() {
   return (
@@ -33,14 +35,14 @@ export default function AppRoutes() {
         } />
         
 
-      {/* HR routes */}
-      <Route path="/hr/dashboard" element={<HRDashboard />} />
-
       {/* Panelist routes */}
 
 
-      {/* Admi */}
+      {/* Admin */}
       <Route path="/Admin/dashboard" element={<AdminDashboard/>} />
+      <Route  path="/Admin/dashboard/Create-job" element={<CreateJob/>}/>
+      <Route  path="/Admin/dashboard/Create-Users" element={<CreateUsers/>}/>
+      <Route path="/Admin/Login" element={<AdminLogin/>}/>
 
 
       {/* 404 */}
