@@ -126,7 +126,8 @@ const HRDashboard = () => {
       title: 'Manage Panelists', 
       subtitle: '3 active panelists', 
       icon: UsersRound,
-      color: colors.secondary.goldenHour
+      color: colors.secondary.goldenHour,
+      path : "/Admin/dashboard/Manage-Panelists"
     },
     { 
       title: 'View Results', 
@@ -300,9 +301,9 @@ const HRDashboard = () => {
           <div className="flex justify-between items-center py-4">
             {/* Brand Section */}
             <div>
-              <h1 className="text-2xl font-bold text-white">Campus Recruit</h1>
+              <h1 className="text-2xl font-bold text-white">Campus Portal</h1>
               <p className="text-sm" style={{ color: colors.primary.softFlow }}>
-                Hiring Made Simple
+                {/* Add here in this line "Slogan"  */}
               </p>
             </div>
 

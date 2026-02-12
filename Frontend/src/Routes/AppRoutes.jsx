@@ -10,6 +10,7 @@ import AdminDashboard from "../Pages/Admin/AdminDashboard";
 import CreateJob from "../Pages/Admin/CreateJob";
 import CreateUsers from "../Pages/Admin/CreateUsers"
 import AdminLogin from "../Pages/Admin/AdminLogin";
+import CreatePanelist from "../Pages/Admin/CreatePanelist"; 
 
 export default function AppRoutes() {
   return (
@@ -40,9 +41,10 @@ export default function AppRoutes() {
 
       {/* Admin */}
       <Route path="/Admin/dashboard" element={<AdminDashboard/>} />
-      <Route  path="/Admin/dashboard/Create-job" element={<CreateJob/>}/>
+      <Route  path="/Admin/dashboard/Create-Jobs" element={<CreateJob/>}/>
       <Route  path="/Admin/dashboard/Create-Users" element={<CreateUsers/>}/>
       <Route path="/Admin/Login" element={<AdminLogin/>}/>
+       <Route path="/Admin/dashboard/Manage-Panelists" element={<CreatePanelist />} />  
 
 
       {/* 404 */}

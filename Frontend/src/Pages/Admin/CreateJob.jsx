@@ -353,7 +353,7 @@ export default function CreateJob({ candidates = [], onJobAssignment, onJobsUpda
               {/* Search and Filters */}
               <div className="flex gap-3 flex-wrap">
                 <div className="relative">
-                  <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white opacity-70" />
+                  <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black z-20 opacity-70 " />
                   <input
                     type="text"
                     placeholder="Search jobs..."
@@ -365,7 +365,7 @@ export default function CreateJob({ candidates = [], onJobAssignment, onJobsUpda
                 </div>
 
                 <div className="relative">
-                  <Filter size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white opacity-70" />
+                  <Filter size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black opacity-70 z-20" />
                   <input
                     type="text"
                     placeholder="Filter by candidate..."
