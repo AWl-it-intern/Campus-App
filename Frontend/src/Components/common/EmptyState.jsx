@@ -1,4 +1,5 @@
-// import React from 'react'; 
+// components/common/EmptyState.jsx
+// Fixed version with proper icon prop handling
 
 /**
  * Reusable EmptyState Component
@@ -8,10 +9,10 @@
  * @param {string} title - Empty state title
  * @param {string} message - Empty state message
  */
-const EmptyState = ({ title, message }) => {
+const EmptyState = ({ icon: Icon, title, message }) => {
   return (
     <div className="text-center py-8 text-gray-500">
-      <Icon size={48} className="mx-auto mb-3 text-gray-300" />
+      {Icon && <Icon size={48} className="mx-auto mb-3 text-gray-300" />}
       <p className="text-lg font-medium">{title}</p>
       {message && <p className="text-sm">{message}</p>}
     </div>

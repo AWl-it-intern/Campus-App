@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -9,8 +9,8 @@ const dbName = process.env.DB_NAME;
 const client = new MongoClient(uri, {
   tls: true,
   tlsAllowInvalidCertificates: true, // dev only
-  serverSelectionTimeoutMS: 5000, 
-  connectTimeoutMS: 5000,         
+  serverSelectionTimeoutMS: 5000,
+  connectTimeoutMS: 5000,
 });
 
 
@@ -50,7 +50,7 @@ export async function insertCandidate(candidateData) {
 }
 
 /* -------- Print Candidates -------- */
-export async function printCandidates(limit = 10, debug = false) {
+export async function printCandidates(limit = 50, debug = false) {
   if (!db) {
     throw new Error("DB not connected. Call connectDB() first.");
   }
@@ -63,7 +63,6 @@ export async function printCandidates(limit = 10, debug = false) {
 
   if (debug) {
     console.log(`📄 Candidate collection | Count: ${candidates.length}`);
-    console.table(candidates);
   }
 
   return candidates;
@@ -91,7 +90,7 @@ export async function insertJob(jobData) {
 }
 
 /* -------- Print Jobs -------- */
-export async function printJobs(limit = 10, debug = false) {
+export async function printJobs(limit = 50, debug = false) {
   if (!db) {
     throw new Error("DB not connected. Call connectDB() first.");
   }
@@ -104,7 +103,6 @@ export async function printJobs(limit = 10, debug = false) {
 
   if (debug) {
     console.log(`📄 Job collection | Count: ${jobs.length}`);
-    console.table(jobs);
   }
 
   return jobs;
@@ -122,7 +120,7 @@ export async function insertUsers(UserData) {
 
   const result = await db.collection("Users").insertOne({
     ...UserData,
-    Role : "Candidate",
+    Role: "Candidate",
     createdAt: new Date(),
   });
 
@@ -132,6 +130,20 @@ export async function insertUsers(UserData) {
 }
 
 
+
+/* -------- Delete Candidate -------- */
+export async function deleteCandidate(id) {
+  if (!db) {
+    throw new Error('DB not connected. Call connectDB() first.');
+  }
+
+  const result = await db.collection('Candidate').deleteOne({ _id: new ObjectId(id) });
+
+  console.log(' Candidate deleted:', result.deletedCount);
+
+  return result;
+}
+
 /* -------- Close -------- */
 export async function closeDB() {
   if (!client) return;
@@ -139,4 +151,68 @@ export async function closeDB() {
   await client.close();
   db = null;
   console.log("🔒 MongoDB connection closed");
+}
+
+
+/*--------------Add panelist------------------*/
+export async function insertPanelist(panelistData) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const result = await db.collection("Panelist").insertOne({
+    ...panelistData,
+    createdAt: new Date(),
+  });
+
+  console.log("✅ Panelist inserted:", result.insertedId);
+
+  return result;
+}
+
+/* -------- Delete Panelist -------- */
+export async function deletePanelist(id) {
+  if (!db) {
+    throw new Error('DB not connected. Call connectDB() first.');
+  }
+
+  const result = await db.collection('Panelist').deleteOne({ _id: new ObjectId(id) });
+
+  console.log(' Panelist deleted:', result.deletedCount);
+
+  return result;
+}
+
+/* -------- Update Panelist -------- */
+export async function updatePanelist(id, updateData) {
+  if (!db) {
+    throw new Error('DB not connected. Call connectDB() first.');
+  }
+
+  const result = await db.collection('Panelist').updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { ...updateData, updatedAt: new Date() } }
+  );
+
+  console.log('Panelist updated:', result.modifiedCount);
+
+  return result;
+}
+
+/* -------- Print Panelists -------- */
+export async function printPanelists(limit = 50, includeAll = false) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const collection = db.collection("Panelist");
+  const query = includeAll ? {} : { limit: limit };
+
+  const panelists = await collection
+    .find({})
+    .limit(limit)
+    .sort({ createdAt: -1 })
+    .toArray();
+
+  return panelists;
 }

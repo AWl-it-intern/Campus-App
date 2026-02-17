@@ -10,10 +10,10 @@
  * @param {string} bgColor - Background color for the icon
  * @param {string} lightBg - Light background color for the card
  */
-const StatsCard = ({ title, count , bgColor, lightBg }) => {
+const StatsCard = ({ title, count , bgColor, lightBg ,icon: Icon  }) => {
   return (
     <div 
-      className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
+      className="card bg-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
     >
       <div className="card-body p-6">
         <div className="flex items-center justify-between">
@@ -27,7 +27,7 @@ const StatsCard = ({ title, count , bgColor, lightBg }) => {
             className="w-16 h-16 rounded-2xl flex items-center justify-center"
             style={{ backgroundColor: lightBg }}
           >
-            {/* <Icon size={32} color={bgColor} />  */}
+            <Icon size={32} color={bgColor} />  
           </div>
         </div>
       </div>

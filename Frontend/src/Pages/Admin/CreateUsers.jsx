@@ -1,22 +1,28 @@
 // pages/CreateUsers.jsx
-// Updated to use modular components
+// Updated with React Router navigation
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo} from "react";
 import { Users } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 
 // Import feature-specific components
 import {
   UserFormCard,
   UsersTableHeader,
   UserTableRow,
-} from "../../components/users/index.js";
+} from "../../Components/users/index.js";
 
 // Import common components
-import EmptyState from "../../components/common/EmptyState.jsx";
+import EmptyState from "../../Components/common/EmptyState.jsx";
 
 const API_BASE = "http://localhost:5000";
 
-export default function CreateUsers({ onCandidatesUpdate }) {
+export default function CreateUsers({ drives = [] }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fromDrives = location.state?.fromDrives || false;
+
   // Color Palette
   const colors = {
     stonewash: "#003329",
@@ -27,81 +33,7 @@ export default function CreateUsers({ onCandidatesUpdate }) {
     clayPot: "#E0B9AD",
   };
 
-  // Dummy data for development (will be replaced by MongoDB data)
-  const dummyCandidates = [
-    {
-      id: 1,
-      name: "Rahul Sharma",
-      email: "rahul@iitd.ac.in",
-      college: "IIT Delhi",
-      AssignedJob: "",
-    },
-    {
-      id: 2,
-      name: "Priya Patel",
-      email: "priya@nitt.edu",
-      college: "NIT Trichy",
-      AssignedJob: "",
-    },
-    {
-      id: 3,
-      name: "Arjun Reddy",
-      email: "arjun@bits.ac.in",
-      college: "BITS Pilani",
-      AssignedJob: "",
-    },
-    {
-      id: 4,
-      name: "Sneha Iyer",
-      email: "sneha@dtu.ac.in",
-      college: "DTU Delhi",
-      AssignedJob: "",
-    },
-    {
-      id: 5,
-      name: "Karthik Menon",
-      email: "karthik@annauniv.edu",
-      college: "Anna University",
-      AssignedJob: "",
-    },
-    {
-      id: 6,
-      name: "Ananya Singh",
-      email: "ananya@vit.ac.in",
-      college: "VIT Vellore",
-      AssignedJob: "",
-    },
-    {
-      id: 7,
-      name: "Rohan Das",
-      email: "rohan@iitb.ac.in",
-      college: "IIT Bombay",
-      AssignedJob: "",
-    },
-    {
-      id: 8,
-      name: "Meera Krishnan",
-      email: "meera@iiit.ac.in",
-      college: "IIIT Hyderabad",
-      AssignedJob: "",
-    },
-    {
-      id: 9,
-      name: "Vikram Malhotra",
-      email: "vikram@nitw.ac.in",
-      college: "NIT Warangal",
-      AssignedJob: "",
-    },
-    {
-      id: 10,
-      name: "Divya Nair",
-      email: "divya@srm.edu.in",
-      college: "SRM University",
-      AssignedJob: "",
-    },
-  ];
-
-  const [candidates, setCandidates] = useState(dummyCandidates);
+const [candidates, setCandidates] = useState([]);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -116,110 +48,90 @@ export default function CreateUsers({ onCandidatesUpdate }) {
 
   /* ---------------- Insert Functions ---------------- */
 
-  const createCandidate = async () => {
-    // Validate inputs
-    if (!newUser.name || !newUser.email || !newUser.college) {
-      alert("Please fill in Name, Email, and College fields");
-      return;
-    }
+ const createCandidate = async () => {
+  if (!newUser.name || !newUser.email || !newUser.college) {
+    alert("Please fill in Name, Email, and College fields");
+    return;
+  }
 
-    try {
-      // For MongoDB integration (currently commented out):
-      // await axios.post(`${API_BASE}/candidate`, newUser);
+  try {
+    const res = await axios.post(`${API_BASE}/candidate`, newUser);
 
-      // Temporary: Add to local state with new ID
-      const newCandidate = {
-        id:
-          candidates.length > 0
-            ? Math.max(...candidates.map((c) => c.id)) + 1
-            : 1,
-        ...newUser,
-      };
+    // Assuming backend returns created candidate in res.data.data
+    const createdCandidate = res.data.data;
 
-      const updatedCandidates = [...candidates, newCandidate];
-      setCandidates(updatedCandidates);
+    setCandidates((prev) => [...prev, createdCandidate]);
 
-      // Notify parent component (CreateJob) about the update
-      if (onCandidatesUpdate) {
-        onCandidatesUpdate(updatedCandidates);
-      }
+    alert("New Candidate Inserted Successfully!");
 
-      alert("New Candidate Inserted Successfully!");
+    setNewUser({
+      name: "",
+      email: "",
+      college: "",
+      AssignedJob: "",
+    });
 
-      // Clear form
-      setNewUser({ name: "", email: "", college: "", AssignedJob: "" });
+  } catch (err) {
+    console.error("Error creating candidate:", err);
+    alert("Failed to create candidate");
+  }
+};
 
-      // For MongoDB: refresh from database
-      // fetchCandidates();
-    } catch (err) {
-      console.error("Error creating candidate:", err);
-      alert("Failed to create candidate");
-    }
-  };
+  // ---------------------------Delete func---------------
+  const deleteCandidate = async (candidateId) => {
+  try {
+    await axios.delete(`${API_BASE}/candidate/${candidateId}`);
+
+    setCandidates((prev) =>
+      prev.filter((candidate) => candidate._id !== candidateId)
+    );
+
+    alert("Candidate Deleted Successfully!");
+  } catch (err) {
+    console.error("Error deleting candidate:", err);
+    alert("Failed to delete candidate");
+  }
+};
+
 
   /* ---------------- Fetch Functions ---------------- */
 
   const fetchCandidates = async () => {
     try {
       // For MongoDB integration:
-      // const res = await axios.get(`${API_BASE}/print-candidates`);
-      // const fetchedCandidates = res.data.data || [];
-      // setCandidates(fetchedCandidates);
-
-      // Notify parent component
-      // if (onCandidatesUpdate) {
-      //   onCandidatesUpdate(fetchedCandidates);
-      // }
-
-      // Currently using dummy data
-      console.log("Using dummy data. Connect to MongoDB to fetch real data.");
+      const res = await axios.get(`${API_BASE}/print-candidates`);
+      const fetchedCandidates = res.data.data || [];
+      setCandidates(fetchedCandidates);
     } catch (err) {
       console.error("Error fetching candidates:", err);
     }
   };
 
-  /* ---------------- Update Function (for job assignments) ---------------- */
-
-  const updateCandidateJob = (candidateId, jobNames) => {
-    const updatedCandidates = candidates.map((candidate) => {
-      if (candidate.id === candidateId) {
-        return { ...candidate, AssignedJob: jobNames };
-      }
-      return candidate;
-    });
-
-    setCandidates(updatedCandidates);
-
-    // Notify parent component
-    if (onCandidatesUpdate) {
-      onCandidatesUpdate(updatedCandidates);
-    }
-  };
-
-  // Expose updateCandidateJob to parent via ref or callback
-  useEffect(() => {
-    if (window.updateCandidateJob) {
-      window.updateCandidateJob = updateCandidateJob;
-    }
-  }, [candidates]);
-
-  /* ---------------- Effects ---------------- */
-
+  // Fetch once on mount
   useEffect(() => {
     fetchCandidates();
-
-    // Notify parent component with initial data
-    if (onCandidatesUpdate) {
-      onCandidatesUpdate(candidates);
-    }
   }, []);
+
+  // Notify parent whenever candidates change
+
 
   /* ---------------- Filter Logic ---------------- */
 
-  const uniqueColleges = [...new Set(candidates.map((c) => c.college))].sort();
-  const uniqueJobs = [
-    ...new Set(candidates.map((c) => c.AssignedJob).filter(Boolean)),
-  ].sort();
+  const uniqueColleges = useMemo(() => {
+    return [...new Set(candidates.map((c) => c.college))].sort();
+  }, [candidates]);
+
+  const uniqueJobs = useMemo(() => {
+    return [
+      ...new Set(candidates.map((c) => c.AssignedJob).filter(Boolean)),
+    ].sort();
+  }, [candidates]);
+
+  // Helper functions for drive and panelist
+  const getDriveName = (driveId) => {
+    const drive = drives.find((d) => d.driveId === driveId);
+    return drive ? `${drive.driveId} - ${drive.collegeName}` : null;
+  };
 
   const filteredCandidates = candidates.filter((candidate) => {
     const searchLower = searchTerm.toLowerCase();
@@ -229,8 +141,13 @@ export default function CreateUsers({ onCandidatesUpdate }) {
       candidate.college.toLowerCase().includes(searchLower);
 
     const matchesCollege =
-      collegeFilter === "" || candidate.college === collegeFilter;
-    const matchesJob = jobFilter === "" || candidate.AssignedJob === jobFilter;
+      collegeFilter === "" ||
+      candidate.college.toLowerCase() === collegeFilter.toLowerCase();
+
+    const matchesJob =
+      jobFilter === "" ||
+      (candidate.AssignedJob &&
+        candidate.AssignedJob.toLowerCase() === jobFilter.toLowerCase());
 
     return matchesSearch && matchesCollege && matchesJob;
   });
@@ -240,6 +157,19 @@ export default function CreateUsers({ onCandidatesUpdate }) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() =>
+            navigate(
+              fromDrives ? "/Admin/dashboard/Drives" : "/Admin/dashboard",
+            )
+          }
+          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
+          style={{ backgroundColor: colors.stonewash }}
+        >
+          ← Back to {fromDrives ? "Drive Management" : "Dashboard"}
+        </button>
+
         {/* Header */}
         <div className="mb-8">
           <h1
@@ -252,15 +182,17 @@ export default function CreateUsers({ onCandidatesUpdate }) {
         </div>
 
         {/* Create User Form - Using Component */}
-        <UserFormCard
-          newUser={newUser}
-          setNewUser={setNewUser}
-          createCandidate={createCandidate}
-          colors={colors}
-        />
+        <div className="relative">
+          <UserFormCard
+            newUser={newUser}
+            setNewUser={setNewUser}
+            createCandidate={createCandidate}
+            colors={colors}
+          />
+        </div>
 
         {/* Candidates Overview Table */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden ">
           {/* Table Header - Using Component */}
           <UsersTableHeader
             filteredCandidates={filteredCandidates.length}
@@ -290,14 +222,20 @@ export default function CreateUsers({ onCandidatesUpdate }) {
                     Email
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Assigned Drive
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
                     Assigned Jobs
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCandidates.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="py-12">
+                    <td colSpan="6" className="py-12">
                       <EmptyState
                         icon={Users}
                         title="No candidates found"
@@ -308,9 +246,11 @@ export default function CreateUsers({ onCandidatesUpdate }) {
                 ) : (
                   filteredCandidates.map((candidate) => (
                     <UserTableRow
-                      key={candidate.id}
+                      key={candidate._id}
                       candidate={candidate}
+                      getDriveName={getDriveName}
                       colors={colors}
+                      deleteCandidate={deleteCandidate}
                     />
                   ))
                 )}

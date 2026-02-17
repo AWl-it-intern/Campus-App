@@ -1,5 +1,4 @@
 // components/jobs/JobTableRow.jsx
-import React from 'react';
 import { Briefcase, UserCheck, Trash2 } from 'lucide-react';
 
 /**

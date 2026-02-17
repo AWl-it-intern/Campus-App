@@ -1,8 +1,9 @@
 // pages/CreateJob.jsx
-// Updated to use modular components
+// Updated with React Router navigation
 
 import { useState, useEffect } from "react";
 import { Briefcase } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // Import feature-specific components
 import {
@@ -10,16 +11,32 @@ import {
   JobsTableHeader,
   JobTableRow,
   AssignCandidatesModal,
-} from "../../components/jobs/index.js";
+} from "../../Components/jobs/index.js";
 
 // Import common components
-import EmptyState from "../../components/common/EmptyState.jsx";
+import EmptyState from "../../Components/common/EmptyState.jsx";
 
 export default function CreateJob({
-  candidates = [],
   onJobAssignment,
   onJobsUpdate,
 }) {
+  // Hardcoded candidate values
+  const candidates = [
+    { id: 1, name: "Alice Johnson", email: "alice@example.com" },
+    { id: 2, name: "Bob Smith", email: "bob@example.com" },
+    { id: 3, name: "Charlie Lee", email: "charlie@example.com" },
+    { id: 4, name: "Diana Patel", email: "diana@example.com" },
+    { id: 5, name: "Ethan Brown", email: "ethan@example.com" },
+    { id: 6, name: "Fiona Green", email: "fiona@example.com" },
+    { id: 7, name: "George White", email: "george@example.com" },
+    { id: 8, name: "Hannah Black", email: "hannah@example.com" },
+    { id: 9, name: "Ian Blue", email: "ian@example.com" },
+    { id: 10, name: "Julia Red", email: "julia@example.com" },
+  ];
+  const navigate = useNavigate();
+  const location = useLocation();
+  const fromDrives = location.state?.fromDrives || false;
+
   // Complete Color Palette
   const colors = {
     stonewash: "#003329",
@@ -33,7 +50,7 @@ export default function CreateJob({
 
   // Easter Egg State - Konami Code
   const [konamiSequence, setKonamiSequence] = useState([]);
-  const [easterEggActive, setEasterEggActive] = useState(false);
+  const [ setEasterEggActive] = useState(false);
 
   // State - Jobs with some candidates assigned to multiple jobs
   const [jobs, setJobs] = useState([
@@ -300,6 +317,19 @@ export default function CreateJob({
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() =>
+            navigate(
+              fromDrives ? "/Admin/dashboard/Drives" : "/Admin/dashboard",
+            )
+          }
+          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
+          style={{ backgroundColor: colors.stonewash }}
+        >
+          ← Back to {fromDrives ? "Drive Management" : "Dashboard"}
+        </button>
+
         {/* Header */}
         <div className="mb-8">
           <h1
@@ -311,19 +341,6 @@ export default function CreateJob({
           <p className="text-gray-600">Create jobs and assign candidates</p>
         </div>
 
-        {/* Easter Egg Message */}
-        {easterEggActive && (
-          <div
-            className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl font-bold z-[10000] pointer-events-none"
-            style={{
-              color: colors.marigoldFlame,
-              textShadow: "0 0 20px rgba(255,173,83,0.8)",
-              animation: "pulse 1s infinite",
-            }}
-          >
-            🎉 You found the easter egg! 🎉
-          </div>
-        )}
 
         {/* Create Job Form - Using Component */}
         <JobFormCard

@@ -1,15 +1,15 @@
 // components/panelists/AssignCandidatesModal.jsx
-import React from 'react';
-import { X, Users, CheckCircle2 } from 'lucide-react';
+import { X, Users, CheckCircle2 } from "lucide-react";
 
 /**
  * AssignCandidatesModal Component
  * Modal for assigning candidates to panelists
- * 
+ *
  * @param {boolean} isOpen - Modal open state
  * @param {function} onClose - Close modal function
  * @param {object} selectedPanelist - Currently selected panelist
  * @param {array} candidates - List of all candidates
+ * @param {boolean} candidatesLoading - Whether candidates are loading
  * @param {array} selectedCandidates - List of selected candidate IDs
  * @param {function} toggleCandidateSelection - Toggle candidate selection
  * @param {function} saveAssignments - Save assignments function
@@ -21,18 +21,19 @@ export const AssignCandidatesModal = ({
   onClose,
   selectedPanelist,
   candidates,
+  candidatesLoading = false,
   selectedCandidates,
   toggleCandidateSelection,
   saveAssignments,
   getAvatarColor,
-  colors
+  colors,
 }) => {
   if (!isOpen || !selectedPanelist) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        <div 
+        <div
           className="p-6 text-white"
           style={{ backgroundColor: colors.stonewash }}
         >
@@ -54,7 +55,12 @@ export const AssignCandidatesModal = ({
 
         <div className="p-6 overflow-y-auto max-h-96">
           <div className="space-y-3">
-            {candidates.length === 0 ? (
+            {candidatesLoading ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
+                <p className="font-medium">Loading candidates...</p>
+              </div>
+            ) : candidates.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Users size={48} className="mx-auto mb-3 text-gray-300" />
                 <p className="font-medium">No candidates available</p>
@@ -67,11 +73,15 @@ export const AssignCandidatesModal = ({
                   <label
                     key={candidate.id}
                     className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      isSelected ? 'border-opacity-100 shadow-md' : 'border-gray-200 hover:bg-gray-50'
+                      isSelected
+                        ? "border-opacity-100 shadow-md"
+                        : "border-gray-200 hover:bg-gray-50"
                     }`}
                     style={{
                       borderColor: isSelected ? colors.softFlow : undefined,
-                      backgroundColor: isSelected ? colors.softFlow + "10" : undefined,
+                      backgroundColor: isSelected
+                        ? colors.softFlow + "10"
+                        : undefined,
                     }}
                   >
                     <input
@@ -80,17 +90,30 @@ export const AssignCandidatesModal = ({
                       checked={isSelected}
                       onChange={() => toggleCandidateSelection(candidate.id)}
                     />
-                    <div 
+                    <div
                       className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shrink-0"
                       style={{ backgroundColor: getAvatarColor(candidate.id) }}
                     >
-                      {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {candidate.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{candidate.name}</p>
-                      <p className="text-sm text-gray-600">{candidate.college}</p>
+                      <p className="font-semibold text-gray-800">
+                        {candidate.name}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {candidate.college}
+                      </p>
                     </div>
-                    {isSelected && <CheckCircle2 size={24} style={{ color: colors.softFlow }} />}
+                    {isSelected && (
+                      <CheckCircle2
+                        size={24}
+                        style={{ color: colors.softFlow }}
+                      />
+                    )}
                   </label>
                 );
               })
@@ -98,12 +121,13 @@ export const AssignCandidatesModal = ({
           </div>
         </div>
 
-        <div 
+        <div
           className="p-6 border-t border-gray-200 flex items-center justify-between"
           style={{ backgroundColor: colors.softFlow + "10" }}
         >
           <p className="text-gray-700">
-            <span className="font-semibold">{selectedCandidates.length}</span> candidate(s) selected
+            <span className="font-semibold">{selectedCandidates.length}</span>{" "}
+            candidate(s) selected
           </p>
           <div className="flex gap-3">
             <button

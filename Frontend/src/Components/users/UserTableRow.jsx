@@ -1,17 +1,25 @@
 // components/users/UserTableRow.jsx
-import React from 'react';
-import { Building2, Mail, Briefcase } from 'lucide-react';
+// Enhanced version with drive and panelist information
+
+import { Building2, Mail, Briefcase, MapPin} from 'lucide-react';
 
 /**
- * UserTableRow Component
- * Single row in the candidates table
+ * UserTableRow Component (Enhanced)
+ * Single row in the candidates table with drive and panelist info
  * 
  * @param {object} candidate - Candidate data object
+ * @param {function} getDriveName - Get drive name by ID
  * @param {object} colors - Color palette object
  */
-export const UserTableRow = ({ candidate, colors }) => {
+export const UserTableRow = ({ 
+  candidate, 
+  getDriveName,
+  colors,
+  deleteCandidate
+}) => {
   const jobList = candidate.AssignedJob ? candidate.AssignedJob.split(', ') : [];
   const hasMultipleJobs = jobList.length > 1;
+  const driveName = getDriveName ? getDriveName(candidate.driveId) : null;
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
@@ -52,6 +60,21 @@ export const UserTableRow = ({ candidate, colors }) => {
         </div>
       </td>
       <td className="px-6 py-4">
+        {driveName ? (
+          <div className="flex items-center gap-2">
+            <MapPin size={16} style={{ color: colors.rainShadow }} />
+            <span 
+              className="text-sm font-medium"
+              style={{ color: colors.rainShadow }}
+            >
+              {driveName}
+            </span>
+          </div>
+        ) : (
+          <span className="text-gray-400 text-sm italic">Not assigned</span> 
+        )}
+      </td>
+      <td className="px-6 py-4">
         <div className="flex flex-wrap gap-2">
           {jobList.length === 0 ? (
             <span className="text-gray-400 text-sm italic">Not assigned</span>
@@ -72,6 +95,15 @@ export const UserTableRow = ({ candidate, colors }) => {
           )}
         </div>
       </td>
+      <td className="px-6 py-4">
+        <button
+          onClick={() => deleteCandidate(candidate._id)}
+         className='px-3 py-1 bg-red-400 text-white rounded-lg text-sm hover:bg-red-600 transition-colors'
+        >
+          Delete
+        </button>
+      </td>
+
     </tr>
   );
 };

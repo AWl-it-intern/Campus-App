@@ -1,8 +1,10 @@
 // pages/CreatePanelist.jsx
-// Updated to use modular components
+// Updated with React Router navigation
 
 import { useMemo, useState, useEffect } from "react";
 import { Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 // Import feature-specific components
 import {
@@ -11,17 +13,80 @@ import {
   PanelistTableRow,
   AssignCandidatesModal,
   ScheduleRoundModal,
-} from "../../components/panelists/index.js";
+} from "../../Components/panelists/index.js";
 
 // Import common components
-import EmptyState from "../../components/common/EmptyState.jsx";
+import EmptyState from "../../Components/common/EmptyState.jsx";
 
 /**
  * CreatePanelist Component - Now integrated with AdminDashboard state management
- * @param {Array} candidates - List of candidates from parent
  * @param {Function} onPanelistsUpdate - Callback to update parent state with panelists
  */
-export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
+export default function CreatePanelist({ onPanelistsUpdate }) {
+  const navigate = useNavigate();
+
+  const API_BASE = "http://localhost:5000";
+
+  // State for candidates
+  const [fetchedCandidates, setFetchedCandidates] = useState([]);
+  const [fetchError, setFetchError] = useState(null);
+  const [candidatesLoading, setCandidatesLoading] = useState(true);
+
+  // State for panelists - only from database
+  const [panelists, setPanelists] = useState([]);
+  const [panelistsLoading, setPanelistsLoading] = useState(true);
+  const [panelistsError, setPanelistsError] = useState(null);
+
+  // Fetch candidates and panelists on mount and when needed
+  const fetchCandidates = async () => {
+    try {
+      setCandidatesLoading(true);
+      const candidatesRes = await axios.get(`${API_BASE}/print-candidates`);
+      const candidatesData = (candidatesRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+      }));
+      setFetchedCandidates(candidatesData);
+      setFetchError(null);
+    } catch (err) {
+      console.error("Error fetching candidates:", err);
+      setFetchError(
+        "Failed to fetch candidates from database. Please try again.",
+      );
+    } finally {
+      setCandidatesLoading(false);
+    }
+  };
+
+  const fetchPanelists = async () => {
+    try {
+      setPanelistsLoading(true);
+      const panelistsRes = await axios.get(`${API_BASE}/print-panelists`);
+      const panelistsData = (panelistsRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+        assignedCandidates: doc.assignedCandidates || [],
+        scheduledRounds: doc.scheduledRounds || [],
+      }));
+      setPanelists(panelistsData);
+      setPanelistsError(null);
+    } catch (err) {
+      console.error("Error fetching panelists:", err);
+      setPanelistsError(
+        "Failed to fetch panelists from database. Please try again.",
+      );
+      setPanelists([]);
+    } finally {
+      setPanelistsLoading(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchCandidates();
+    fetchPanelists();
+  }, []);
+
   // Color Palette
   const colors = {
     stonewash: "#003329",
@@ -32,77 +97,10 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
     clayPot: "#E0B9AD",
   };
 
-  // Use candidates from parent, or fallback to dummy data
+  // Use candidates from database only
   const candidatesList = useMemo(() => {
-    if (candidates && candidates.length > 0) {
-      return candidates;
-    }
-    // Fallback dummy data
-    return [
-      { id: 1, name: "Ananya Singh", college: "IIT Bombay" },
-      { id: 2, name: "Harsh Mehta", college: "VJTI" },
-      { id: 3, name: "Rohit Verma", college: "IISc" },
-      { id: 4, name: "Ishita Rao", college: "NIT Trichy" },
-      { id: 5, name: "Sana Qureshi", college: "BITS Pilani" },
-      { id: 6, name: "Vikram Patil", college: "COEP" },
-      { id: 7, name: "Nina Kapoor", college: "SPIT" },
-      { id: 8, name: "Arjun Desai", college: "DA-IICT" },
-    ];
-  }, [candidates]);
-
-  // Panelist state with initial dummy data
-  const [panelists, setPanelists] = useState([
-    {
-      id: 1,
-      name: "Dr. Rajesh Kumar",
-      email: "rajesh.kumar@company.com",
-      designation: "Senior Technical Manager",
-      expertise: "Software Development",
-      assignedCandidates: [1, 2, 3],
-      scheduledRounds: [
-        {
-          candidateId: 1,
-          type: "GD",
-          date: "2026-02-15",
-          time: "10:00",
-          status: "Scheduled",
-        },
-        {
-          candidateId: 2,
-          type: "PI",
-          date: "2026-02-16",
-          time: "14:00",
-          status: "Scheduled",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Ms. Priya Sharma",
-      email: "priya.sharma@company.com",
-      designation: "HR Director",
-      expertise: "Behavioral Assessment",
-      assignedCandidates: [4, 5],
-      scheduledRounds: [
-        {
-          candidateId: 4,
-          type: "GD",
-          date: "2026-02-17",
-          time: "11:00",
-          status: "Scheduled",
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "Mr. Amit Patel",
-      email: "amit.patel@company.com",
-      designation: "Product Manager",
-      expertise: "Product & Strategy",
-      assignedCandidates: [6, 7, 8],
-      scheduledRounds: [],
-    },
-  ]);
+    return fetchedCandidates;
+  }, [fetchedCandidates]);
 
   // Notify parent component when panelists change
   useEffect(() => {
@@ -129,6 +127,7 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
   const [selectedPanelist, setSelectedPanelist] = useState(null);
   const [selectedCandidatesForAssignment, setSelectedCandidatesForAssignment] =
     useState([]);
+  const [assignmentFilter, setAssignmentFilter] = useState("all"); // NEW
 
   // Schedule modal state
   const [scheduleData, setScheduleData] = useState({
@@ -139,7 +138,7 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
   });
 
   // Create Panelist
-  const createPanelist = () => {
+  const createPanelist = async () => {
     if (
       !newPanelist.name ||
       !newPanelist.email ||
@@ -156,29 +155,89 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
       return;
     }
 
-    const nextId =
-      panelists.length > 0 ? Math.max(...panelists.map((p) => p.id)) + 1 : 1;
-    const newRow = {
-      id: nextId,
-      ...newPanelist,
-      assignedCandidates: [],
-      scheduledRounds: [],
-    };
+    try {
+      const response = await axios.post(`${API_BASE}/panelist`, {
+        name: newPanelist.name,
+        email: newPanelist.email,
+        designation: newPanelist.designation,
+        expertise: newPanelist.expertise,
+      });
 
-    setPanelists((prev) => [...prev, newRow]);
-    setNewPanelist({ name: "", email: "", designation: "", expertise: "" });
-    alert("Panelist Created Successfully!");
+      if (response.data.success) {
+        // Clear form and refetch panelists from database
+        setNewPanelist({ name: "", email: "", designation: "", expertise: "" });
+        await fetchPanelists();
+        alert("Panelist Created Successfully!");
+      } else {
+        alert(
+          "Failed to create panelist: " +
+            (response.data.error || "Unknown error"),
+        );
+      }
+    } catch (error) {
+      console.error("Error creating panelist:", error);
+      alert(
+        "Failed to create panelist. Please check your connection and try again.",
+      );
+    }
   };
 
   // Delete Panelist
-  const deletePanelist = (panelistToDelete) => {
+  const deletePanelist = async (panelistToDelete) => {
     if (
       window.confirm(
         `Are you sure you want to delete "${panelistToDelete.name}"?`,
       )
     ) {
-      setPanelists((prev) => prev.filter((p) => p.id !== panelistToDelete.id));
-      alert("Panelist deleted successfully!");
+      try {
+        const response = await axios.delete(
+          `${API_BASE}/panelist/${panelistToDelete.id}`,
+        );
+
+        if (response.data.success) {
+          // Refetch panelists from database
+          await fetchPanelists();
+          alert("Panelist deleted successfully!");
+        } else {
+          alert(
+            "Failed to delete panelist: " +
+              (response.data.error || "Unknown error"),
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting panelist:", error);
+        alert(
+          "Failed to delete panelist. Please check your connection and try again.",
+        );
+      }
+    }
+  };
+
+  // Update Panelist
+  const updatePanelist = async (panelistId, updateData) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE}/panelist/${panelistId}`,
+        updateData,
+      );
+
+      if (response.data.success) {
+        // Refetch panelists from database to ensure data consistency
+        await fetchPanelists();
+        return true;
+      } else {
+        alert(
+          "Failed to update panelist: " +
+            (response.data.error || "Unknown error"),
+        );
+        return false;
+      }
+    } catch (error) {
+      console.error("Error updating panelist:", error);
+      alert(
+        "Failed to update panelist. Please check your connection and try again.",
+      );
+      return false;
     }
   };
 
@@ -197,21 +256,27 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
     );
   };
 
-  const saveAssignments = () => {
+  const saveAssignments = async () => {
     if (!selectedPanelist) return;
 
-    setPanelists((prev) =>
-      prev.map((p) =>
-        p.id === selectedPanelist.id
-          ? { ...p, assignedCandidates: selectedCandidatesForAssignment }
-          : p,
-      ),
-    );
+    const success = await updatePanelist(selectedPanelist.id, {
+      assignedCandidates: selectedCandidatesForAssignment,
+    });
 
-    setShowAssignModal(false);
-    setSelectedPanelist(null);
-    setSelectedCandidatesForAssignment([]);
-    alert("Candidate assignments updated successfully!");
+    if (success) {
+      setPanelists((prev) =>
+        prev.map((p) =>
+          p.id === selectedPanelist.id
+            ? { ...p, assignedCandidates: selectedCandidatesForAssignment }
+            : p,
+        ),
+      );
+
+      setShowAssignModal(false);
+      setSelectedPanelist(null);
+      setSelectedCandidatesForAssignment([]);
+      alert("Candidate assignments updated successfully!");
+    }
   };
 
   // Schedule Round
@@ -221,35 +286,46 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
     setShowScheduleModal(true);
   };
 
-  const scheduleRound = () => {
-    if (
-      !scheduleData.candidateId ||
-      !scheduleData.date ||
-      !scheduleData.time ||
-      !selectedPanelist
-    ) {
-      alert("Please fill in all fields");
-      return;
-    }
+ const scheduleRound = async () => {
+  if (
+    !scheduleData.candidateId ||
+    !scheduleData.date ||
+    !scheduleData.time ||
+    !selectedPanelist
+  ) {
+    alert("Please fill in all fields");
+    return;
+  }
 
-    const cid = parseInt(scheduleData.candidateId, 10);
-    if (!selectedPanelist.assignedCandidates.includes(cid)) {
-      alert("Please assign this candidate to the panelist first");
-      return;
-    }
+  const cid = scheduleData.candidateId; // ✅ FIXED
 
-    const newRound = {
-      candidateId: cid,
-      type: scheduleData.type,
-      date: scheduleData.date,
-      time: scheduleData.time,
-      status: "Scheduled",
-    };
+  if (!selectedPanelist.assignedCandidates.includes(cid)) {
+    alert("Please assign this candidate to the panelist first");
+    return;
+  }
 
+  const newRound = {
+    candidateId: cid,
+    type: scheduleData.type,
+    date: scheduleData.date,
+    time: scheduleData.time,
+    status: "Scheduled",
+  };
+
+  const updatedScheduledRounds = [
+    ...selectedPanelist.scheduledRounds,
+    newRound,
+  ];
+
+  const success = await updatePanelist(selectedPanelist.id, {
+    scheduledRounds: updatedScheduledRounds,
+  });
+
+  if (success) {
     setPanelists((prev) =>
       prev.map((p) =>
         p.id === selectedPanelist.id
-          ? { ...p, scheduledRounds: [...p.scheduledRounds, newRound] }
+          ? { ...p, scheduledRounds: updatedScheduledRounds }
           : p,
       ),
     );
@@ -257,7 +333,9 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
     setShowScheduleModal(false);
     setSelectedPanelist(null);
     alert("Interview round scheduled successfully!");
-  };
+  }
+};
+
 
   // Helpers
   const getCandidateName = (id) => {
@@ -273,27 +351,51 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
       colors.marigoldFlame,
       colors.clayPot,
     ];
-    return avatarColors[id % avatarColors.length];
+    // Simple hash for string IDs
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return avatarColors[Math.abs(hash) % avatarColors.length];
   };
 
   const uniqueExpertise = [
     ...new Set(panelists.map((p) => p.expertise)),
   ].sort();
-
   const filteredPanelists = panelists.filter((panelist) => {
     const q = searchTerm.toLowerCase();
+
     const matchesSearch =
       panelist.name.toLowerCase().includes(q) ||
       panelist.email.toLowerCase().includes(q) ||
       panelist.designation.toLowerCase().includes(q);
+
     const matchesExpertise =
       expertiseFilter === "" || panelist.expertise === expertiseFilter;
-    return matchesSearch && matchesExpertise;
+
+    // NEW: Assignment Filter
+    const isAssigned = panelist.assignedCandidates?.length > 0;
+
+    const matchesAssignment =
+      assignmentFilter === "all" ||
+      (assignmentFilter === "assigned" && isAssigned) ||
+      (assignmentFilter === "unassigned" && !isAssigned);
+
+    return matchesSearch && matchesExpertise && matchesAssignment;
   });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate("/Admin/dashboard")}
+          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
+          style={{ backgroundColor: colors.stonewash }}
+        >
+          ← Back to Dashboard
+        </button>
+
         {/* Header */}
         <div className="mb-8">
           <h1
@@ -306,6 +408,20 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
             Create and manage interview panelists for recruitment
           </p>
         </div>
+
+        {/* Error Message */}
+        {fetchError && (
+          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <strong>Error:</strong> {fetchError}
+          </div>
+        )}
+
+        {/* Panelists Error Message */}
+        {panelistsError && (
+          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+            <strong>Warning:</strong> {panelistsError}
+          </div>
+        )}
 
         {/* Create Panelist Form - Using Component */}
         <PanelistFormCard
@@ -325,6 +441,8 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
             expertiseFilter={expertiseFilter}
             setExpertiseFilter={setExpertiseFilter}
             uniqueExpertise={uniqueExpertise}
+            assignmentFilter={assignmentFilter} // NEW
+            setAssignmentFilter={setAssignmentFilter} // NEW
             colors={colors}
           />
 
@@ -351,7 +469,18 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredPanelists.length === 0 ? (
+                {panelistsLoading ? (
+                  <tr>
+                    <td colSpan="5" className="py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
+                        <p className="font-medium text-gray-500">
+                          Loading panelists...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredPanelists.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="py-12">
                       <EmptyState
@@ -387,6 +516,7 @@ export default function CreatePanelist({ candidates = [], onPanelistsUpdate }) {
         onClose={() => setShowAssignModal(false)}
         selectedPanelist={selectedPanelist}
         candidates={candidatesList}
+        candidatesLoading={candidatesLoading}
         selectedCandidates={selectedCandidatesForAssignment}
         toggleCandidateSelection={toggleCandidateSelection}
         saveAssignments={saveAssignments}

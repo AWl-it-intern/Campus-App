@@ -1,5 +1,5 @@
 // components/jobs/JobsTableHeader.jsx
-import React from 'react';
+
 import { Briefcase, Search, Filter } from 'lucide-react';
 
 /**

@@ -1,5 +1,4 @@
 // components/jobs/AssignCandidatesModal.jsx
-import React from 'react';
 import { X, Users, CheckCircle2 } from 'lucide-react';
 
 /**

@@ -1,5 +1,4 @@
 // components/panelists/ScheduleRoundModal.jsx
-import React from 'react';
 import { X, UserCheck, Calendar, MessageSquare, Video } from 'lucide-react';
 
 /**

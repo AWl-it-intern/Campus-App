@@ -1,33 +1,41 @@
-// components/users/UsersTableHeader.jsx
-import { Users, Search, Upload } from 'lucide-react';
+// components/drivemanagement/DrivesTableHeader.jsx
+import React from 'react';
+import { MapPin, Search, Filter } from 'lucide-react';
 
 /**
- * UsersTableHeader Component
- * Table header with search and filters for the candidates table
+ * DrivesTableHeader Component
+ * Table header with filters for the drives table
  * 
- * @param {number} filteredCandidates - Count of filtered candidates
+ * @param {number} filteredDrivesCount - Count of filtered drives
  * @param {string} searchTerm - Current search term
  * @param {function} setSearchTerm - Search term setter
+ * @param {string} statusFilter - Selected status filter
+ * @param {function} setStatusFilter - Status filter setter
  * @param {string} collegeFilter - Selected college filter
  * @param {function} setCollegeFilter - College filter setter
- * @param {string} jobFilter - Selected job filter
- * @param {function} setJobFilter - Job filter setter
  * @param {array} uniqueColleges - List of unique colleges
- * @param {array} uniqueJobs - List of unique jobs
  * @param {object} colors - Color palette object
  */
-export const UsersTableHeader = ({ 
-  filteredCandidates,
+export const DrivesTableHeader = ({ 
+  filteredDrivesCount,
   searchTerm,
   setSearchTerm,
+  statusFilter,
+  setStatusFilter,
   collegeFilter,
   setCollegeFilter,
-  jobFilter,
-  setJobFilter,
   uniqueColleges,
-  uniqueJobs,
-  colors,
+  colors 
 }) => {
+  const statusOptions = [
+    'Draft',
+    'Live', 
+    'GD Completed',
+    'PI Completed',
+    'Results Released',
+    'closed'
+  ];
+
   return (
     <div 
       className="p-6 text-white"
@@ -35,25 +43,29 @@ export const UsersTableHeader = ({
     >
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <Users size={24} />
+          <MapPin size={24} />
           <div>
-            <h2 className="text-xl font-bold">Candidates Overview</h2>
+            <h2 className="text-xl font-bold">Campus Drives Overview</h2>
             <p className="text-sm opacity-90">
-              Total: {filteredCandidates} candidate{filteredCandidates !== 1 ? 's' : ''}
+              Total: {filteredDrivesCount} drive{filteredDrivesCount !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
 
-        {/* Search and Filters and Actions*/}
+        {/* Search and Filters */}
         <div className="flex gap-3 flex-wrap">
           <div className="relative">
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black opacity-70" />
+            <Search 
+              size={18} 
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white opacity-70" 
+            />
             <input
               type="text"
-              placeholder="Search candidates..."
-              className="pl-10 pr-4 py-2 rounded-lg border-2 border-white border-opacity-40 bg-white bg-opacity-30 text-black placeholder-black placeholder-opacity-70 focus:outline-none focus:bg-opacity-40 focus:border-opacity-60 min-w-50px"
+              placeholder="Search drives..."
+              className="pl-10 pr-4 py-2 rounded-lg border-2 border-white border-opacity-40 bg-white bg-opacity-30 text-black placeholder-black placeholder-opacity-70 focus:outline-none focus:bg-opacity-40 focus:border-opacity-60 min-w-[200px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ backdropFilter: 'blur(10px)' }}
             />
           </div>
 
@@ -73,14 +85,14 @@ export const UsersTableHeader = ({
 
           <select
             className="px-4 py-2 rounded-lg border-2 border-white border-opacity-40 bg-white bg-opacity-30 text-black focus:outline-none focus:bg-opacity-40 focus:border-opacity-60"
-            value={jobFilter}
-            onChange={(e) => setJobFilter(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             style={{ backdropFilter: 'blur(10px)' }}
           >
-            <option value="" className="text-gray-800">All Jobs</option>
-            {uniqueJobs.map(job => (
-              <option key={job} value={job} className="text-gray-800">
-                {job}
+            <option value="" className="text-gray-800">All Status</option>
+            {statusOptions.map(status => (
+              <option key={status} value={status} className="text-gray-800">
+                {status}
               </option>
             ))}
           </select>
@@ -90,4 +102,4 @@ export const UsersTableHeader = ({
   );
 };
 
-export default UsersTableHeader;
+export default DrivesTableHeader;

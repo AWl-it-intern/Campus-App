@@ -1,5 +1,4 @@
 // components/jobs/JobFormCard.jsx
-import React from 'react';
 import { Plus, Briefcase } from 'lucide-react';
 
 /**
