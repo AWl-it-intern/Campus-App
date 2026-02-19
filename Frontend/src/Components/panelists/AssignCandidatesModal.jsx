@@ -1,31 +1,29 @@
 // components/panelists/AssignCandidatesModal.jsx
-import { X, Users, CheckCircle2 } from "lucide-react";
+import { X, Briefcase, CheckCircle2 } from "lucide-react";
 
 /**
  * AssignCandidatesModal Component
- * Modal for assigning candidates to panelists
+ * Modal for assigning jobs to panelists
  *
  * @param {boolean} isOpen - Modal open state
  * @param {function} onClose - Close modal function
  * @param {object} selectedPanelist - Currently selected panelist
- * @param {array} candidates - List of all candidates
- * @param {boolean} candidatesLoading - Whether candidates are loading
- * @param {array} selectedCandidates - List of selected candidate IDs
- * @param {function} toggleCandidateSelection - Toggle candidate selection
+ * @param {array} jobs - List of all jobs
+ * @param {boolean} jobsLoading - Whether jobs are loading
+ * @param {array} selectedJobs - List of selected job names
+ * @param {function} toggleJobSelection - Toggle job selection
  * @param {function} saveAssignments - Save assignments function
- * @param {function} getAvatarColor - Get avatar color by ID
  * @param {object} colors - Color palette object
  */
 export const AssignCandidatesModal = ({
   isOpen,
   onClose,
   selectedPanelist,
-  candidates,
-  candidatesLoading = false,
-  selectedCandidates,
-  toggleCandidateSelection,
+  jobs,
+  jobsLoading = false,
+  selectedJobs,
+  toggleJobSelection,
   saveAssignments,
-  getAvatarColor,
   colors,
 }) => {
   if (!isOpen || !selectedPanelist) return null;
@@ -39,7 +37,7 @@ export const AssignCandidatesModal = ({
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-2xl font-bold">Assign Candidates</h3>
+              <h3 className="text-2xl font-bold">Assign Jobs</h3>
               <p className="text-sm opacity-90 mt-1">
                 {selectedPanelist.name} ({selectedPanelist.designation})
               </p>
@@ -55,23 +53,25 @@ export const AssignCandidatesModal = ({
 
         <div className="p-6 overflow-y-auto max-h-96">
           <div className="space-y-3">
-            {candidatesLoading ? (
+            {jobsLoading ? (
               <div className="text-center py-8 text-gray-500">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
-                <p className="font-medium">Loading candidates...</p>
+                <p className="font-medium">Loading jobs...</p>
               </div>
-            ) : candidates.length === 0 ? (
+            ) : jobs.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <Users size={48} className="mx-auto mb-3 text-gray-300" />
-                <p className="font-medium">No candidates available</p>
-                <p className="text-sm">Please create candidates first</p>
+                <Briefcase size={48} className="mx-auto mb-3 text-gray-300" />
+                <p className="font-medium">No jobs available</p>
+                <p className="text-sm">Please create jobs first</p>
               </div>
             ) : (
-              candidates.map((candidate) => {
-                const isSelected = selectedCandidates.includes(candidate.id);
+              jobs.map((job) => {
+                const jobId = job.id || job._id || job.JobID || job.JobName;
+                const jobName = job.JobName || "Untitled Job";
+                const isSelected = selectedJobs.includes(jobName);
                 return (
                   <label
-                    key={candidate.id}
+                    key={jobId}
                     className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       isSelected
                         ? "border-opacity-100 shadow-md"
@@ -88,24 +88,18 @@ export const AssignCandidatesModal = ({
                       type="checkbox"
                       className="w-5 h-5 rounded accent-green-600"
                       checked={isSelected}
-                      onChange={() => toggleCandidateSelection(candidate.id)}
+                      onChange={() => toggleJobSelection(jobName)}
                     />
                     <div
                       className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shrink-0"
-                      style={{ backgroundColor: getAvatarColor(candidate.id) }}
+                      style={{ backgroundColor: colors.rainShadow }}
                     >
-                      {candidate.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
+                      <Briefcase size={20} />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">
-                        {candidate.name}
-                      </p>
+                      <p className="font-semibold text-gray-800">{jobName}</p>
                       <p className="text-sm text-gray-600">
-                        {candidate.college}
+                        Job ID: {job.JobID || "-"}
                       </p>
                     </div>
                     {isSelected && (
@@ -126,8 +120,8 @@ export const AssignCandidatesModal = ({
           style={{ backgroundColor: colors.softFlow + "10" }}
         >
           <p className="text-gray-700">
-            <span className="font-semibold">{selectedCandidates.length}</span>{" "}
-            candidate(s) selected
+            <span className="font-semibold">{selectedJobs.length}</span>{" "}
+            job(s) selected
           </p>
           <div className="flex gap-3">
             <button

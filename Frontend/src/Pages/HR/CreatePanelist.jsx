@@ -1,12 +1,8 @@
-// pages/CreatePanelist.jsx
-// Updated with React Router navigation
-
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// Import feature-specific components
 import {
   PanelistFormCard,
   PanelistsTableHeader,
@@ -14,80 +10,12 @@ import {
   AssignCandidatesModal,
   ScheduleRoundModal,
 } from "../../Components/panelists/index.js";
-
-// Import common components
 import EmptyState from "../../Components/common/EmptyState.jsx";
 
-/**
- * CreatePanelist Component - Now integrated with HRDashboard state management
- * @param {Function} onPanelistsUpdate - Callback to update parent state with panelists
- */
 export default function CreatePanelist({ onPanelistsUpdate }) {
   const navigate = useNavigate();
-
   const API_BASE = "http://localhost:5000";
 
-  // State for candidates
-  const [fetchedCandidates, setFetchedCandidates] = useState([]);
-  const [fetchError, setFetchError] = useState(null);
-  const [candidatesLoading, setCandidatesLoading] = useState(true);
-
-  // State for panelists - only from database
-  const [panelists, setPanelists] = useState([]);
-  const [panelistsLoading, setPanelistsLoading] = useState(true);
-  const [panelistsError, setPanelistsError] = useState(null);
-
-  // Fetch candidates and panelists on mount and when needed
-  const fetchCandidates = async () => {
-    try {
-      setCandidatesLoading(true);
-      const candidatesRes = await axios.get(`${API_BASE}/print-candidates`);
-      const candidatesData = (candidatesRes.data.data || []).map((doc) => ({
-        ...doc,
-        id: doc._id,
-      }));
-      setFetchedCandidates(candidatesData);
-      setFetchError(null);
-    } catch (err) {
-      console.error("Error fetching candidates:", err);
-      setFetchError(
-        "Failed to fetch candidates from database. Please try again.",
-      );
-    } finally {
-      setCandidatesLoading(false);
-    }
-  };
-
-  const fetchPanelists = async () => {
-    try {
-      setPanelistsLoading(true);
-      const panelistsRes = await axios.get(`${API_BASE}/print-panelists`);
-      const panelistsData = (panelistsRes.data.data || []).map((doc) => ({
-        ...doc,
-        id: doc._id,
-        assignedCandidates: doc.assignedCandidates || [],
-        scheduledRounds: doc.scheduledRounds || [],
-      }));
-      setPanelists(panelistsData);
-      setPanelistsError(null);
-    } catch (err) {
-      console.error("Error fetching panelists:", err);
-      setPanelistsError(
-        "Failed to fetch panelists from database. Please try again.",
-      );
-      setPanelists([]);
-    } finally {
-      setPanelistsLoading(false);
-    }
-  };
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchCandidates();
-    fetchPanelists();
-  }, []);
-
-  // Color Palette
   const colors = {
     stonewash: "#003329",
     softFlow: "#6AE8D3",
@@ -97,19 +25,16 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     clayPot: "#E0B9AD",
   };
 
-  // Use candidates from database only
-  const candidatesList = useMemo(() => {
-    return fetchedCandidates;
-  }, [fetchedCandidates]);
+  const [fetchedCandidates, setFetchedCandidates] = useState([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(true);
+  const [fetchedJobs, setFetchedJobs] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
-  // Notify parent component when panelists change
-  useEffect(() => {
-    if (onPanelistsUpdate) {
-      onPanelistsUpdate(panelists);
-    }
-  }, [panelists, onPanelistsUpdate]);
+  const [panelists, setPanelists] = useState([]);
+  const [panelistsLoading, setPanelistsLoading] = useState(true);
+  const [panelistsError, setPanelistsError] = useState(null);
 
-  // Create Panelist form state
   const [newPanelist, setNewPanelist] = useState({
     name: "",
     email: "",
@@ -117,19 +42,15 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     expertise: "",
   });
 
-  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [expertiseFilter, setExpertiseFilter] = useState("");
+  const [assignmentFilter, setAssignmentFilter] = useState("all");
 
-  // Modals
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedPanelist, setSelectedPanelist] = useState(null);
-  const [selectedCandidatesForAssignment, setSelectedCandidatesForAssignment] =
-    useState([]);
-  const [assignmentFilter, setAssignmentFilter] = useState("all"); // NEW
+  const [selectedJobsForAssignment, setSelectedJobsForAssignment] = useState([]);
 
-  // Schedule modal state
   const [scheduleData, setScheduleData] = useState({
     candidateId: "",
     type: "GD",
@@ -137,7 +58,75 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     time: "",
   });
 
-  // Create Panelist
+  const fetchCandidates = async () => {
+    try {
+      setCandidatesLoading(true);
+      const candidatesRes = await axios.get(`${API_BASE}/print-candidates?limit=5000`);
+      const candidatesData = (candidatesRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+      }));
+      setFetchedCandidates(candidatesData);
+      setFetchError(null);
+    } catch (err) {
+      console.error("Error fetching candidates:", err);
+      setFetchError("Failed to fetch candidates/jobs from database. Please try again.");
+    } finally {
+      setCandidatesLoading(false);
+    }
+  };
+
+  const fetchJobs = async () => {
+    try {
+      setJobsLoading(true);
+      const jobsRes = await axios.get(`${API_BASE}/print-jobs?limit=5000`);
+      const jobsData = (jobsRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+      }));
+      setFetchedJobs(jobsData);
+      setFetchError(null);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+      setFetchError("Failed to fetch candidates/jobs from database. Please try again.");
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  const fetchPanelists = async () => {
+    try {
+      setPanelistsLoading(true);
+      const panelistsRes = await axios.get(`${API_BASE}/print-panelists?limit=5000`);
+      const panelistsData = (panelistsRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+        assignedJobs: doc.assignedJobs || [],
+        scheduledRounds: doc.scheduledRounds || [],
+      }));
+      setPanelists(panelistsData);
+      setPanelistsError(null);
+    } catch (err) {
+      console.error("Error fetching panelists:", err);
+      setPanelistsError("Failed to fetch panelists from database. Please try again.");
+      setPanelists([]);
+    } finally {
+      setPanelistsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCandidates();
+    fetchJobs();
+    fetchPanelists();
+  }, []);
+
+  useEffect(() => {
+    if (onPanelistsUpdate) {
+      onPanelistsUpdate(panelists);
+    }
+  }, [panelists, onPanelistsUpdate]);
+
   const createPanelist = async () => {
     if (
       !newPanelist.name ||
@@ -164,95 +153,65 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
       });
 
       if (response.data.success) {
-        // Clear form and refetch panelists from database
         setNewPanelist({ name: "", email: "", designation: "", expertise: "" });
         await fetchPanelists();
         alert("Panelist Created Successfully!");
       } else {
-        alert(
-          "Failed to create panelist: " +
-            (response.data.error || "Unknown error"),
-        );
+        alert("Failed to create panelist: " + (response.data.error || "Unknown error"));
       }
     } catch (error) {
       console.error("Error creating panelist:", error);
-      alert(
-        "Failed to create panelist. Please check your connection and try again.",
-      );
+      alert("Failed to create panelist. Please check your connection and try again.");
     }
   };
 
-  // Delete Panelist
   const deletePanelist = async (panelistToDelete) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${panelistToDelete.name}"?`,
-      )
-    ) {
+    if (window.confirm(`Are you sure you want to delete "${panelistToDelete.name}"?`)) {
       try {
-        const response = await axios.delete(
-          `${API_BASE}/panelist/${panelistToDelete.id}`,
-        );
+        const response = await axios.delete(`${API_BASE}/panelist/${panelistToDelete.id}`);
 
         if (response.data.success) {
-          // Refetch panelists from database
           await fetchPanelists();
           alert("Panelist deleted successfully!");
         } else {
-          alert(
-            "Failed to delete panelist: " +
-              (response.data.error || "Unknown error"),
-          );
+          alert("Failed to delete panelist: " + (response.data.error || "Unknown error"));
         }
       } catch (error) {
         console.error("Error deleting panelist:", error);
-        alert(
-          "Failed to delete panelist. Please check your connection and try again.",
-        );
+        alert("Failed to delete panelist. Please check your connection and try again.");
       }
     }
   };
 
-  // Update Panelist
   const updatePanelist = async (panelistId, updateData) => {
     try {
-      const response = await axios.put(
-        `${API_BASE}/panelist/${panelistId}`,
-        updateData,
-      );
+      const response = await axios.put(`${API_BASE}/panelist/${panelistId}`, updateData);
 
       if (response.data.success) {
-        // Refetch panelists from database to ensure data consistency
         await fetchPanelists();
         return true;
-      } else {
-        alert(
-          "Failed to update panelist: " +
-            (response.data.error || "Unknown error"),
-        );
-        return false;
       }
+
+      alert("Failed to update panelist: " + (response.data.error || "Unknown error"));
+      return false;
     } catch (error) {
       console.error("Error updating panelist:", error);
-      alert(
-        "Failed to update panelist. Please check your connection and try again.",
-      );
+      alert("Failed to update panelist. Please check your connection and try again.");
       return false;
     }
   };
 
-  // Assign Candidates
   const openAssignModal = (panelist) => {
     setSelectedPanelist(panelist);
-    setSelectedCandidatesForAssignment(panelist.assignedCandidates);
+    setSelectedJobsForAssignment(panelist.assignedJobs || []);
     setShowAssignModal(true);
   };
 
-  const toggleCandidateSelection = (candidateId) => {
-    setSelectedCandidatesForAssignment((prev) =>
-      prev.includes(candidateId)
-        ? prev.filter((id) => id !== candidateId)
-        : [...prev, candidateId],
+  const toggleJobSelection = (jobName) => {
+    setSelectedJobsForAssignment((prev) =>
+      prev.includes(jobName)
+        ? prev.filter((value) => value !== jobName)
+        : [...prev, jobName],
     );
   };
 
@@ -260,122 +219,88 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     if (!selectedPanelist) return;
 
     const success = await updatePanelist(selectedPanelist.id, {
-      assignedCandidates: selectedCandidatesForAssignment,
+      assignedJobs: selectedJobsForAssignment,
     });
 
     if (success) {
       setPanelists((prev) =>
-        prev.map((p) =>
-          p.id === selectedPanelist.id
-            ? { ...p, assignedCandidates: selectedCandidatesForAssignment }
-            : p,
+        prev.map((panelist) =>
+          panelist.id === selectedPanelist.id
+            ? { ...panelist, assignedJobs: selectedJobsForAssignment }
+            : panelist,
         ),
       );
 
       setShowAssignModal(false);
       setSelectedPanelist(null);
-      setSelectedCandidatesForAssignment([]);
-      alert("Candidate assignments updated successfully!");
+      setSelectedJobsForAssignment([]);
+      alert("Job assignments updated successfully!");
     }
   };
 
-  // Schedule Round
   const openScheduleModal = (panelist) => {
     setSelectedPanelist(panelist);
     setScheduleData({ candidateId: "", type: "GD", date: "", time: "" });
     setShowScheduleModal(true);
   };
 
- const scheduleRound = async () => {
-  if (
-    !scheduleData.candidateId ||
-    !scheduleData.date ||
-    !scheduleData.time ||
-    !selectedPanelist
-  ) {
-    alert("Please fill in all fields");
-    return;
-  }
+  const scheduleRound = async () => {
+    if (!scheduleData.candidateId || !scheduleData.date || !scheduleData.time || !selectedPanelist) {
+      alert("Please fill in all fields");
+      return;
+    }
 
-  const cid = scheduleData.candidateId; // ✅ FIXED
+    const newRound = {
+      candidateId: scheduleData.candidateId,
+      type: scheduleData.type,
+      date: scheduleData.date,
+      time: scheduleData.time,
+      status: "Scheduled",
+    };
 
-  if (!selectedPanelist.assignedCandidates.includes(cid)) {
-    alert("Please assign this candidate to the panelist first");
-    return;
-  }
+    const updatedScheduledRounds = [...selectedPanelist.scheduledRounds, newRound];
+    const success = await updatePanelist(selectedPanelist.id, {
+      scheduledRounds: updatedScheduledRounds,
+    });
 
-  const newRound = {
-    candidateId: cid,
-    type: scheduleData.type,
-    date: scheduleData.date,
-    time: scheduleData.time,
-    status: "Scheduled",
+    if (success) {
+      setPanelists((prev) =>
+        prev.map((panelist) =>
+          panelist.id === selectedPanelist.id
+            ? { ...panelist, scheduledRounds: updatedScheduledRounds }
+            : panelist,
+        ),
+      );
+
+      setShowScheduleModal(false);
+      setSelectedPanelist(null);
+      alert("Interview round scheduled successfully!");
+    }
   };
 
-  const updatedScheduledRounds = [
-    ...selectedPanelist.scheduledRounds,
-    newRound,
-  ];
-
-  const success = await updatePanelist(selectedPanelist.id, {
-    scheduledRounds: updatedScheduledRounds,
-  });
-
-  if (success) {
-    setPanelists((prev) =>
-      prev.map((p) =>
-        p.id === selectedPanelist.id
-          ? { ...p, scheduledRounds: updatedScheduledRounds }
-          : p,
-      ),
-    );
-
-    setShowScheduleModal(false);
-    setSelectedPanelist(null);
-    alert("Interview round scheduled successfully!");
-  }
-};
-
-
-  // Helpers
   const getCandidateName = (id) => {
-    const candidate = candidatesList.find((c) => c.id === id);
+    const candidate = fetchedCandidates.find(
+      (item) => item.id === id || item._id === id,
+    );
     return candidate?.name || "Unknown";
   };
 
-  const getAvatarColor = (id) => {
-    const avatarColors = [
-      colors.softFlow,
-      colors.mossRock,
-      colors.goldenHour,
-      colors.marigoldFlame,
-      colors.clayPot,
-    ];
-    // Simple hash for string IDs
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return avatarColors[Math.abs(hash) % avatarColors.length];
-  };
-
   const uniqueExpertise = [
-    ...new Set(panelists.map((p) => p.expertise)),
+    ...new Set(panelists.map((panelist) => panelist.expertise).filter(Boolean)),
   ].sort();
+
   const filteredPanelists = panelists.filter((panelist) => {
-    const q = searchTerm.toLowerCase();
+    const query = searchTerm.toLowerCase();
 
     const matchesSearch =
-      panelist.name.toLowerCase().includes(q) ||
-      panelist.email.toLowerCase().includes(q) ||
-      panelist.designation.toLowerCase().includes(q);
+      String(panelist.name || "").toLowerCase().includes(query) ||
+      String(panelist.email || "").toLowerCase().includes(query) ||
+      String(panelist.designation || "").toLowerCase().includes(query);
 
     const matchesExpertise =
       expertiseFilter === "" || panelist.expertise === expertiseFilter;
 
-    // NEW: Assignment Filter
-    const isAssigned = panelist.assignedCandidates?.length > 0;
-
+    const isAssigned = (panelist.assignedJobs || []).length > 0;
     const matchesAssignment =
       assignmentFilter === "all" ||
       (assignmentFilter === "assigned" && isAssigned) ||
@@ -387,21 +312,16 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Back Button */}
         <button
           onClick={() => navigate("/HR/dashboard")}
           className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
           style={{ backgroundColor: colors.stonewash }}
         >
-          ← Back to Dashboard
+          {"<-"} Back to Dashboard
         </button>
 
-        {/* Header */}
         <div className="mb-8">
-          <h1
-            className="text-3xl font-bold mb-2"
-            style={{ color: colors.stonewash }}
-          >
+          <h1 className="text-3xl font-bold mb-2" style={{ color: colors.stonewash }}>
             Manage Panelists
           </h1>
           <p className="text-gray-600">
@@ -409,21 +329,18 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
           </p>
         </div>
 
-        {/* Error Message */}
         {fetchError && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             <strong>Error:</strong> {fetchError}
           </div>
         )}
 
-        {/* Panelists Error Message */}
         {panelistsError && (
           <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
             <strong>Warning:</strong> {panelistsError}
           </div>
         )}
 
-        {/* Create Panelist Form - Using Component */}
         <PanelistFormCard
           newPanelist={newPanelist}
           setNewPanelist={setNewPanelist}
@@ -431,9 +348,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
           colors={colors}
         />
 
-        {/* Panelists Table */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          {/* Table Header - Using Component */}
           <PanelistsTableHeader
             filteredPanelistsCount={filteredPanelists.length}
             searchTerm={searchTerm}
@@ -441,12 +356,11 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
             expertiseFilter={expertiseFilter}
             setExpertiseFilter={setExpertiseFilter}
             uniqueExpertise={uniqueExpertise}
-            assignmentFilter={assignmentFilter} // NEW
-            setAssignmentFilter={setAssignmentFilter} // NEW
+            assignmentFilter={assignmentFilter}
+            setAssignmentFilter={setAssignmentFilter}
             colors={colors}
           />
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead style={{ backgroundColor: colors.softFlow + "20" }}>
@@ -461,7 +375,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
                     Expertise
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
-                    Assigned Candidates
+                    Assigned Jobs
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
                     Actions
@@ -474,9 +388,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
                     <td colSpan="5" className="py-12">
                       <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
-                        <p className="font-medium text-gray-500">
-                          Loading panelists...
-                        </p>
+                        <p className="font-medium text-gray-500">Loading panelists...</p>
                       </div>
                     </td>
                   </tr>
@@ -495,8 +407,6 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
                     <PanelistTableRow
                       key={panelist.id}
                       panelist={panelist}
-                      getCandidateName={getCandidateName}
-                      getAvatarColor={getAvatarColor}
                       openAssignModal={openAssignModal}
                       openScheduleModal={openScheduleModal}
                       deletePanelist={deletePanelist}
@@ -510,25 +420,24 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
         </div>
       </div>
 
-      {/* Assignment Modal - Using Component */}
       <AssignCandidatesModal
         isOpen={showAssignModal}
         onClose={() => setShowAssignModal(false)}
         selectedPanelist={selectedPanelist}
-        candidates={candidatesList}
-        candidatesLoading={candidatesLoading}
-        selectedCandidates={selectedCandidatesForAssignment}
-        toggleCandidateSelection={toggleCandidateSelection}
+        jobs={fetchedJobs}
+        jobsLoading={jobsLoading}
+        selectedJobs={selectedJobsForAssignment}
+        toggleJobSelection={toggleJobSelection}
         saveAssignments={saveAssignments}
-        getAvatarColor={getAvatarColor}
         colors={colors}
       />
 
-      {/* Schedule Round Modal - Using Component */}
       <ScheduleRoundModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
         selectedPanelist={selectedPanelist}
+        candidates={fetchedCandidates}
+        candidatesLoading={candidatesLoading}
         scheduleData={scheduleData}
         setScheduleData={setScheduleData}
         scheduleRound={scheduleRound}

@@ -61,7 +61,7 @@ export const PanelistsTableHeader = ({
 
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-white opacity-90">
-              Assignment:
+              Job Assignment:
             </label>
 
             <select
@@ -71,8 +71,8 @@ export const PanelistsTableHeader = ({
               style={{ borderColor: colors.softFlow }}
             >
               <option value="all">All</option>
-              <option value="assigned">Assigned Panelists</option>
-              <option value="unassigned">Unassigned Panelists</option>
+              <option value="assigned">Assigned Jobs</option>
+              <option value="unassigned">Unassigned Jobs</option>
             </select>
           </div>
 

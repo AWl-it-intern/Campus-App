@@ -8,6 +8,8 @@ import { X, UserCheck, Calendar, MessageSquare, Video } from 'lucide-react';
  * @param {boolean} isOpen - Modal open state
  * @param {function} onClose - Close modal function
  * @param {object} selectedPanelist - Currently selected panelist
+ * @param {array} candidates - List of available candidates
+ * @param {boolean} candidatesLoading - Candidate loading state
  * @param {object} scheduleData - Schedule form data
  * @param {function} setScheduleData - Schedule data setter
  * @param {function} scheduleRound - Schedule round function
@@ -18,6 +20,8 @@ export const ScheduleRoundModal = ({
   isOpen,
   onClose,
   selectedPanelist,
+  candidates = [],
+  candidatesLoading = false,
   scheduleData,
   setScheduleData,
   scheduleRound,
@@ -48,11 +52,16 @@ export const ScheduleRoundModal = ({
         </div>
 
         <div className="p-6">
-          {selectedPanelist.assignedCandidates.length === 0 ? (
+          {candidatesLoading ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
+              <p className="font-medium">Loading candidates...</p>
+            </div>
+          ) : candidates.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <UserCheck size={48} className="mx-auto mb-3 text-gray-300" />
-              <p className="font-medium">No candidates assigned</p>
-              <p className="text-sm">Please assign candidates first</p>
+              <p className="font-medium">No candidates available</p>
+              <p className="text-sm">Please create candidates first</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -64,11 +73,14 @@ export const ScheduleRoundModal = ({
                   onChange={(e) => setScheduleData({ ...scheduleData, candidateId: e.target.value })}
                 >
                   <option value="">Choose a candidate</option>
-                  {selectedPanelist.assignedCandidates.map((candidateId) => (
-                    <option key={candidateId} value={candidateId}>
-                      {getCandidateName(candidateId)}
-                    </option>
-                  ))}
+                  {candidates.map((candidate) => {
+                    const candidateId = candidate.id || candidate._id;
+                    return (
+                      <option key={candidateId} value={candidateId}>
+                        {candidate.name}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -163,7 +175,7 @@ export const ScheduleRoundModal = ({
             onClick={scheduleRound}
             className="px-6 py-2 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105"
             style={{ backgroundColor: colors.marigoldFlame }}
-            disabled={selectedPanelist.assignedCandidates.length === 0}
+            disabled={candidatesLoading || candidates.length === 0}
           >
             <div className="flex items-center gap-2">
               <Calendar size={18} />

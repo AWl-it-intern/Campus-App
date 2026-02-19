@@ -253,13 +253,20 @@ export default function CreateJob({
   };
 
   // Filter jobs based on search
-  const filteredJobs = jobs.filter((job) => {
-    const searchLower = jobSearchTerm.toLowerCase();
-    return (
-      job.JobID.toLowerCase().includes(searchLower) ||
-      job.JobName.toLowerCase().includes(searchLower)
+  const filteredJobs = jobs
+    .filter((job) => {
+      const searchLower = jobSearchTerm.toLowerCase();
+      return (
+        job.JobID.toLowerCase().includes(searchLower) ||
+        job.JobName.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) =>
+      String(a.JobID || "").localeCompare(String(b.JobID || ""), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
     );
-  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

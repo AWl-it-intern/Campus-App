@@ -1,14 +1,12 @@
 // components/panelists/PanelistTableRow.jsx
 import React from 'react';
-import { Building2, UserCheck, Calendar, Trash2 } from 'lucide-react';
+import { Building2, UserCheck, Calendar, Trash2, Briefcase } from 'lucide-react';
 
 /**
  * PanelistTableRow Component
  * Single row in the panelists table
  * 
  * @param {object} panelist - Panelist data object
- * @param {function} getCandidateName - Get candidate name by ID
- * @param {function} getAvatarColor - Get avatar color by ID
  * @param {function} openAssignModal - Open assignment modal
  * @param {function} openScheduleModal - Open schedule modal
  * @param {function} deletePanelist - Delete panelist function
@@ -16,13 +14,15 @@ import { Building2, UserCheck, Calendar, Trash2 } from 'lucide-react';
  */
 export const PanelistTableRow = ({ 
   panelist, 
-  getCandidateName,
-  getAvatarColor,
   openAssignModal,
   openScheduleModal,
   deletePanelist,
   colors 
 }) => {
+  const assignedJobs = Array.isArray(panelist.assignedJobs)
+    ? panelist.assignedJobs
+    : [];
+
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
       <td className="px-6 py-4">
@@ -58,40 +58,39 @@ export const PanelistTableRow = ({
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
-          {panelist.assignedCandidates.length === 0 ? (
-            <span className="text-gray-400 text-sm italic">No candidates</span>
+          {assignedJobs.length === 0 ? (
+            <span className="text-gray-400 text-sm italic">No jobs assigned</span>
           ) : (
             <>
-              <div className="flex -space-x-2">
-                {panelist.assignedCandidates.slice(0, 3).map((candidateId) => {
-                  const initials = getCandidateName(candidateId)
-                    .split(' ')
-                    .map(n => n[0])
-                    .join('')
-                    .toUpperCase();
-                  
-                  return (
-                    <div
-                      key={candidateId}
-                      className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-white text-xs border-2 border-white"
-                      style={{ backgroundColor: getAvatarColor(candidateId) }}
-                      title={getCandidateName(candidateId)}
-                    >
-                      {initials}
-                    </div>
-                  );
-                })}
-                {panelist.assignedCandidates.length > 3 && (
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-white text-xs border-2 border-white"
-                    style={{ backgroundColor: colors.stonewash }}
+              <div className="flex flex-wrap gap-1">
+                {assignedJobs.slice(0, 3).map((jobName) => (
+                  <span
+                    key={jobName}
+                    className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                    style={{
+                      backgroundColor: colors.softFlow + "20",
+                      color: colors.stonewash,
+                    }}
+                    title={jobName}
                   >
-                    +{panelist.assignedCandidates.length - 3}
-                  </div>
+                    <Briefcase size={12} />
+                    {jobName}
+                  </span>
+                ))}
+                {assignedJobs.length > 3 && (
+                  <span
+                    className="px-2 py-1 rounded text-xs font-medium"
+                    style={{
+                      backgroundColor: colors.stonewash,
+                      color: "white",
+                    }}
+                  >
+                    +{assignedJobs.length - 3}
+                  </span>
                 )}
               </div>
               <span className="text-sm text-gray-600 ml-2">
-                {panelist.assignedCandidates.length} candidate{panelist.assignedCandidates.length !== 1 ? 's' : ''}
+                {assignedJobs.length} job{assignedJobs.length !== 1 ? 's' : ''}
               </span>
             </>
           )}
