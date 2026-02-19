@@ -1,22 +1,19 @@
 // components/drivemanagement/JobSelector.jsx
-import React, { useState } from 'react';
-import { Briefcase, ChevronDown, Plus } from 'lucide-react';
+import { Briefcase, ChevronDown } from 'lucide-react';
 
 /**
  * JobSelector Component
- * Dropdown selector for filtering drives by job with create job option
+ * Dropdown selector for filtering drives by job
  * 
- * @param {string} selectedJob - Currently selected job ID
+ * @param {string} selectedJob - Currently selected job name
  * @param {function} setSelectedJob - Job selection setter
  * @param {array} jobs - List of available jobs
- * @param {function} onCreateJob - Handler to open create job modal
  * @param {object} colors - Color palette object
  */
 export const JobSelector = ({ 
   selectedJob, 
   setSelectedJob, 
   jobs,
-  onCreateJob,
   colors 
 }) => {
   return (
@@ -38,28 +35,22 @@ export const JobSelector = ({
               focusRingColor: colors.rainShadow,
               borderColor: selectedJob ? colors.rainShadow : undefined
             }}
-          >
-            <option value="">All Jobs</option>
-            {jobs.map(job => (
-              <option key={job.JobID} value={job.JobID}>
-                {job.JobID} - {job.JobName}
-              </option>
-            ))}
-          </select>
+        >
+          <option value="">All Jobs</option>
+          {jobs.map(job => (
+            <option
+              key={job.id || job._id || job.JobID || job.JobName}
+              value={job.JobName}
+            >
+              {job.JobName}
+            </option>
+          ))}
+        </select>
           <ChevronDown 
             size={20} 
             className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" 
           />
         </div>
-
-        <button
-          onClick={onCreateJob}
-          className="px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
-          style={{ backgroundColor: colors.mossRock }}
-        >
-          <Plus size={20} />
-          <span>Create Job</span>
-        </button>
       </div>
     </div>
   );

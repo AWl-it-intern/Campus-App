@@ -1,5 +1,4 @@
 // components/drivemanagement/CreateJobModal.jsx
-import React from 'react';
 import { X, Briefcase } from 'lucide-react';
 
 /**

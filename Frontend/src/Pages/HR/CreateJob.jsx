@@ -4,35 +4,24 @@
 import { useState, useEffect } from "react";
 import { Briefcase } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 
 // Import feature-specific components
 import {
   JobFormCard,
   JobsTableHeader,
   JobTableRow,
-  AssignCandidatesModal,
 } from "../../Components/jobs/index.js";
 
 // Import common components
 import EmptyState from "../../Components/common/EmptyState.jsx";
 
+const API_BASE = "http://localhost:5000";
+
 export default function CreateJob({
   onJobAssignment,
   onJobsUpdate,
 }) {
-  // Hardcoded candidate values
-  const candidates = [
-    { id: 1, name: "Alice Johnson", email: "alice@example.com" },
-    { id: 2, name: "Bob Smith", email: "bob@example.com" },
-    { id: 3, name: "Charlie Lee", email: "charlie@example.com" },
-    { id: 4, name: "Diana Patel", email: "diana@example.com" },
-    { id: 5, name: "Ethan Brown", email: "ethan@example.com" },
-    { id: 6, name: "Fiona Green", email: "fiona@example.com" },
-    { id: 7, name: "George White", email: "george@example.com" },
-    { id: 8, name: "Hannah Black", email: "hannah@example.com" },
-    { id: 9, name: "Ian Blue", email: "ian@example.com" },
-    { id: 10, name: "Julia Red", email: "julia@example.com" },
-  ];
   const navigate = useNavigate();
   const location = useLocation();
   const fromDrives = location.state?.fromDrives || false;
@@ -52,43 +41,42 @@ export default function CreateJob({
   const [konamiSequence, setKonamiSequence] = useState([]);
   const [ setEasterEggActive] = useState(false);
 
-  // State - Jobs with some candidates assigned to multiple jobs
-  const [jobs, setJobs] = useState([
-    {
-      JobID: "JOB001",
-      JobName: "Software Engineer",
-      assignedCandidates: [1, 2, 7],
-    },
-    { JobID: "JOB002", JobName: "Data Analyst", assignedCandidates: [2, 3, 8] },
-    { JobID: "JOB003", JobName: "Product Manager", assignedCandidates: [4] },
-    { JobID: "JOB004", JobName: "UI/UX Designer", assignedCandidates: [5, 9] },
-    {
-      JobID: "JOB005",
-      JobName: "DevOps Engineer",
-      assignedCandidates: [1, 7, 10],
-    },
-    {
-      JobID: "JOB006",
-      JobName: "Business Analyst",
-      assignedCandidates: [2, 6],
-    },
-  ]);
+  // State - Jobs from database
+  const [jobs, setJobs] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState(null);
 
   const [newJob, setNewJob] = useState({
     JobID: "",
     JobName: "",
   });
 
+  const fetchJobs = async () => {
+    try {
+      setJobsLoading(true);
+      const jobsRes = await axios.get(`${API_BASE}/print-jobs`);
+      const jobsData = (jobsRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+        assignedCandidates: doc.assignedCandidates || [],
+      }));
+      setJobs(jobsData);
+      setJobsError(null);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+      setJobsError("Failed to fetch jobs from database. Please try again.");
+      setJobs([]);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
   // Filter states for Jobs Table
   const [jobSearchTerm, setJobSearchTerm] = useState("");
-  const [jobCandidateFilter, setJobCandidateFilter] = useState("");
-  const [showMultipleJobsOnly, setShowMultipleJobsOnly] = useState(false);
-
-  // Modal states
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [selectedCandidatesForAssignment, setSelectedCandidatesForAssignment] =
-    useState([]);
 
   // Easter Egg Functions - Defined before useEffect
   const createConfetti = () => {
@@ -183,7 +171,7 @@ export default function CreateJob({
       const candidateJobMap = {};
 
       jobs.forEach((job) => {
-        job.assignedCandidates.forEach((candidateId) => {
+        (job.assignedCandidates || []).forEach((candidateId) => {
           if (!candidateJobMap[candidateId]) {
             candidateJobMap[candidateId] = [];
           }
@@ -202,116 +190,75 @@ export default function CreateJob({
   }, [jobs]);
 
   // Create Job Function
-  const createJob = () => {
-    if (!newJob.JobID || !newJob.JobName) {
+  const createJob = async () => {
+    const jobId = newJob.JobID.trim();
+    const jobName = newJob.JobName.trim();
+
+    if (!jobId || !jobName) {
       alert("Please fill in all fields");
       return;
     }
 
-    if (jobs.some((job) => job.JobID === newJob.JobID)) {
+    if (jobs.some((job) => job.JobID.toLowerCase() === jobId.toLowerCase())) {
       alert("Job ID already exists!");
       return;
     }
 
-    setJobs([...jobs, { ...newJob, assignedCandidates: [] }]);
-    setNewJob({ JobID: "", JobName: "" });
-    alert("Job Created Successfully!");
-  };
+    try {
+      const response = await axios.post(`${API_BASE}/job`, {
+        JobID: jobId,
+        JobName: jobName,
+        assignedCandidates: [],
+      });
 
-  // Open Assignment Modal
-  const openAssignModal = (job) => {
-    setSelectedJob(job);
-    setSelectedCandidatesForAssignment(job.assignedCandidates);
-    setShowAssignModal(true);
-  };
-
-  // Toggle candidate selection in modal
-  const toggleCandidateSelection = (candidateId) => {
-    if (selectedCandidatesForAssignment.includes(candidateId)) {
-      setSelectedCandidatesForAssignment(
-        selectedCandidatesForAssignment.filter((id) => id !== candidateId),
-      );
-    } else {
-      setSelectedCandidatesForAssignment([
-        ...selectedCandidatesForAssignment,
-        candidateId,
-      ]);
+      if (response.data.success) {
+        setNewJob({ JobID: "", JobName: "" });
+        await fetchJobs();
+        alert("Job Created Successfully!");
+      } else {
+        alert("Failed to create job: " + (response.data.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error creating job:", error);
+      alert("Failed to create job. Please check your connection and try again.");
     }
   };
 
-  // Save assignments
-  const saveAssignments = () => {
-    setJobs(
-      jobs.map((job) =>
-        job.JobID === selectedJob.JobID
-          ? { ...job, assignedCandidates: selectedCandidatesForAssignment }
-          : job,
-      ),
-    );
-    setShowAssignModal(false);
-    setSelectedJob(null);
-    setSelectedCandidatesForAssignment([]);
-    alert("Job assignments updated successfully!");
-  };
-
   // Delete Job Function
-  const deleteJob = (jobToDelete) => {
+  const deleteJob = async (jobToDelete) => {
     if (
       window.confirm(
         `Are you sure you want to delete "${jobToDelete.JobName}" (${jobToDelete.JobID})?`,
       )
     ) {
-      setJobs(jobs.filter((job) => job.JobID !== jobToDelete.JobID));
-      alert("Job deleted successfully!");
+      const jobId = jobToDelete.id || jobToDelete._id;
+      if (!jobId) {
+        alert("Unable to delete job: missing job id.");
+        return;
+      }
+
+      try {
+        const response = await axios.delete(`${API_BASE}/job/${jobId}`);
+        if (response.data.success) {
+          await fetchJobs();
+          alert("Job deleted successfully!");
+        } else {
+          alert("Failed to delete job: " + (response.data.error || "Unknown error"));
+        }
+      } catch (error) {
+        console.error("Error deleting job:", error);
+        alert("Failed to delete job. Please check your connection and try again.");
+      }
     }
   };
 
-  // Get candidate name by ID
-  const getCandidateName = (id) => {
-    const candidate = candidates.find((c) => c.id === id);
-    return candidate ? candidate.name : "Unknown";
-  };
-
-  // Get candidate info by ID
-  const getCandidateInfo = (id) => {
-    return candidates.find((c) => c.id === id);
-  };
-
-  // Get jobs for a specific candidate
-  const getJobsForCandidate = (candidateId) => {
-    return jobs.filter((job) => job.assignedCandidates.includes(candidateId));
-  };
-
-  // Get avatar color based on ID
-  const getAvatarColor = (id) => {
-    const avatarColors = [
-      colors.softFlow,
-      colors.mossRock,
-      colors.goldenHour,
-      colors.marigoldFlame,
-      colors.clayPot,
-    ];
-    return avatarColors[id % avatarColors.length];
-  };
-
-  // Filter jobs based on search and filters
+  // Filter jobs based on search
   const filteredJobs = jobs.filter((job) => {
     const searchLower = jobSearchTerm.toLowerCase();
-    const matchesSearch =
+    return (
       job.JobID.toLowerCase().includes(searchLower) ||
-      job.JobName.toLowerCase().includes(searchLower);
-
-    const matchesCandidate =
-      jobCandidateFilter === "" ||
-      job.assignedCandidates.some((id) => {
-        const name = getCandidateName(id);
-        return name.toLowerCase().includes(jobCandidateFilter.toLowerCase());
-      });
-
-    const matchesMultiple =
-      !showMultipleJobsOnly || job.assignedCandidates.length > 1;
-
-    return matchesSearch && matchesCandidate && matchesMultiple;
+      job.JobName.toLowerCase().includes(searchLower)
+    );
   });
 
   return (
@@ -321,7 +268,7 @@ export default function CreateJob({
         <button
           onClick={() =>
             navigate(
-              fromDrives ? "/Admin/dashboard/Drives" : "/Admin/dashboard",
+              fromDrives ? "/HR/dashboard/Drives" : "/HR/dashboard",
             )
           }
           className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
@@ -338,9 +285,15 @@ export default function CreateJob({
           >
             Manage Jobs
           </h1>
-          <p className="text-gray-600">Create jobs and assign candidates</p>
+          <p className="text-gray-600">Create and manage jobs</p>
         </div>
 
+        {/* Jobs Error Message */}
+        {jobsError && (
+          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+            <strong>Warning:</strong> {jobsError}
+          </div>
+        )}
 
         {/* Create Job Form - Using Component */}
         <JobFormCard
@@ -357,10 +310,6 @@ export default function CreateJob({
             filteredJobsCount={filteredJobs.length}
             jobSearchTerm={jobSearchTerm}
             setJobSearchTerm={setJobSearchTerm}
-            jobCandidateFilter={jobCandidateFilter}
-            setJobCandidateFilter={setJobCandidateFilter}
-            showMultipleJobsOnly={showMultipleJobsOnly}
-            setShowMultipleJobsOnly={setShowMultipleJobsOnly}
             colors={colors}
           />
 
@@ -384,7 +333,16 @@ export default function CreateJob({
                 </tr>
               </thead>
               <tbody>
-                {filteredJobs.length === 0 ? (
+                {jobsLoading ? (
+                  <tr>
+                    <td colSpan="4" className="py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
+                        <p className="font-medium text-gray-500">Loading jobs...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredJobs.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="py-12">
                       <EmptyState
@@ -397,12 +355,8 @@ export default function CreateJob({
                 ) : (
                   filteredJobs.map((job) => (
                     <JobTableRow
-                      key={job.JobID}
+                      key={job.id || job._id || job.JobID}
                       job={job}
-                      getCandidateInfo={getCandidateInfo}
-                      getCandidateName={getCandidateName}
-                      getAvatarColor={getAvatarColor}
-                      openAssignModal={openAssignModal}
                       deleteJob={deleteJob}
                       colors={colors}
                     />
@@ -413,20 +367,6 @@ export default function CreateJob({
           </div>
         </div>
       </div>
-
-      {/* Assignment Modal - Using Component */}
-      <AssignCandidatesModal
-        isOpen={showAssignModal}
-        onClose={() => setShowAssignModal(false)}
-        selectedJob={selectedJob}
-        candidates={candidates}
-        selectedCandidates={selectedCandidatesForAssignment}
-        toggleCandidateSelection={toggleCandidateSelection}
-        saveAssignments={saveAssignments}
-        getJobsForCandidate={getJobsForCandidate}
-        getAvatarColor={getAvatarColor}
-        colors={colors}
-      />
     </div>
   );
 }

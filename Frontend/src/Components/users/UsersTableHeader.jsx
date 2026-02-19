@@ -1,5 +1,5 @@
 // components/users/UsersTableHeader.jsx
-import { Users, Search, Upload } from 'lucide-react';
+import { Users, Search, FileText } from 'lucide-react';
 
 /**
  * UsersTableHeader Component
@@ -14,6 +14,7 @@ import { Users, Search, Upload } from 'lucide-react';
  * @param {function} setJobFilter - Job filter setter
  * @param {array} uniqueColleges - List of unique colleges
  * @param {array} uniqueJobs - List of unique jobs
+ * @param {function} onExportCsv - Export CSV click handler
  * @param {object} colors - Color palette object
  */
 export const UsersTableHeader = ({ 
@@ -26,6 +27,7 @@ export const UsersTableHeader = ({
   setJobFilter,
   uniqueColleges,
   uniqueJobs,
+  onExportCsv,
   colors,
 }) => {
   return (
@@ -44,8 +46,16 @@ export const UsersTableHeader = ({
           </div>
         </div>
 
-        {/* Search and Filters and Actions*/}
+        {/* Search, Filters and Actions */}
         <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={onExportCsv}
+            className="px-4 py-2 rounded-lg  bg-amber-700 text-white font-semibold hover:bg-amber-800 transition-all flex items-center gap-2"
+          >
+            <FileText size={16} />
+            <span>Export CSV</span>
+          </button>
+
           <div className="relative">
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black opacity-70" />
             <input

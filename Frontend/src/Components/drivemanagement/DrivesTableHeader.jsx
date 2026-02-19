@@ -1,6 +1,5 @@
 // components/drivemanagement/DrivesTableHeader.jsx
-import React from 'react';
-import { MapPin, Search, Filter } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
 
 /**
  * DrivesTableHeader Component
@@ -9,6 +8,9 @@ import { MapPin, Search, Filter } from 'lucide-react';
  * @param {number} filteredDrivesCount - Count of filtered drives
  * @param {string} searchTerm - Current search term
  * @param {function} setSearchTerm - Search term setter
+ * @param {string} selectedJob - Selected job opening filter
+ * @param {function} setSelectedJob - Job filter setter
+ * @param {array} availableJobNames - List of available job names
  * @param {string} statusFilter - Selected status filter
  * @param {function} setStatusFilter - Status filter setter
  * @param {string} collegeFilter - Selected college filter
@@ -20,6 +22,9 @@ export const DrivesTableHeader = ({
   filteredDrivesCount,
   searchTerm,
   setSearchTerm,
+  selectedJob,
+  setSelectedJob,
+  availableJobNames,
   statusFilter,
   setStatusFilter,
   collegeFilter,
@@ -29,11 +34,8 @@ export const DrivesTableHeader = ({
 }) => {
   const statusOptions = [
     'Draft',
-    'Live', 
-    'GD Completed',
-    'PI Completed',
-    'Results Released',
-    'closed'
+    'Live',
+    'Closed'
   ];
 
   return (
@@ -68,6 +70,20 @@ export const DrivesTableHeader = ({
               style={{ backdropFilter: 'blur(10px)' }}
             />
           </div>
+
+          <select
+            className="px-4 py-2 rounded-lg border-2 border-white border-opacity-40 bg-white bg-opacity-30 text-black focus:outline-none focus:bg-opacity-40 focus:border-opacity-60"
+            value={selectedJob}
+            onChange={(e) => setSelectedJob(e.target.value)}
+            style={{ backdropFilter: 'blur(10px)' }}
+          >
+            <option value="" className="text-gray-800">All Job Openings</option>
+            {availableJobNames.map((jobName) => (
+              <option key={jobName} value={jobName} className="text-gray-800">
+                {jobName}
+              </option>
+            ))}
+          </select>
 
           <select
             className="px-4 py-2 rounded-lg border-2 border-white border-opacity-40 bg-white bg-opacity-30 text-black focus:outline-none focus:bg-opacity-40 focus:border-opacity-60"

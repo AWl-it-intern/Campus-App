@@ -1,23 +1,24 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import CandidateLogin from "../Pages/Candidate/CandidateLogin";
+import LoginPage from "../Pages/Common/LoginPage";
 import CandidateRegister from "../Pages/Candidate/CandidateRegister";
 import CandidateDashboard from "../Pages/Candidate/CandidateDashboard";
 import ApplicationForm from "../Pages/Candidate/Applicationform";
 import NotFound from "../Pages/Common/NotFound";
 // import ProtectedRoute from "./ProtectedRoute"; 
-import AdminDashboard from "../Pages/Admin/AdminDashboard";
-import DriveManagement from "../Pages/Admin/DriveManagement";
-import CreateJob from "../Pages/Admin/CreateJob";
-import CreateUsers from "../Pages/Admin/CreateUsers";
-import CreatePanelist from "../Pages/Admin/CreatePanelist";
+import HRDashboard from "../Pages/HR/HRDashboard";
+import DriveManagement from "../Pages/HR/DriveManagement";
+import DrivePage from "../Pages/HR/DrivePage";
+import CreateJob from "../Pages/HR/CreateJob";
+import CreateUsers from "../Pages/HR/CreateUsers";
+import CreatePanelist from "../Pages/HR/CreatePanelist";
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Navigate to="/login" />} />
-      <Route path="/login" element={<CandidateLogin />} />
+      <Route path="/login" element={<LoginPage/>} />
       <Route path="/register" element={<CandidateRegister />} />
 
       {/* Candidate routes */}
@@ -36,15 +37,16 @@ export default function AppRoutes() {
 
       {/* Panelist routes */}
 
-      {/* Admin */}
-      <Route path="/Admin/dashboard/Create-Users" element={<CreateUsers />} />
-      <Route path="/Admin/dashboard" element={<AdminDashboard />} />
+      {/* HR */}
+      <Route path="/HR/dashboard/Create-Users" element={<CreateUsers />} />
+      <Route path="/HR/dashboard" element={<HRDashboard />} />
       <Route
-        path="/Admin/dashboard/Manage-Panelists"
+        path="/HR/dashboard/Manage-Panelists"
         element={<CreatePanelist />}
       />
-       <Route path="/Admin/dashboard/Drives" element={<DriveManagement />} />
-       <Route path="/Admin/dashboard/Create-Job" element={<CreateJob/>}/>
+       <Route path="/HR/dashboard/Drives" element={<DriveManagement />} />
+       <Route path="/HR/dashboard/Drives/:driveId" element={<DrivePage />} />
+       <Route path="/HR/dashboard/Create-Job" element={<CreateJob/>}/>
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

@@ -1,6 +1,5 @@
 // components/users/UserFormCard.jsx
-import React from 'react';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Upload } from 'lucide-react';
 
 /**
  * UserFormCard Component
@@ -9,12 +8,16 @@ import { UserPlus } from 'lucide-react';
  * @param {object} newUser - User form state object
  * @param {function} setNewUser - State setter for user form
  * @param {function} createCandidate - Function to create new candidate
+ * @param {function} onImportClick - Handler to open import dialog
+ * @param {boolean} importing - Import loading state
  * @param {object} colors - Color palette object
  */
 export const UserFormCard = ({ 
   newUser, 
   setNewUser, 
   createCandidate, 
+  onImportClick,
+  importing = false,
   colors 
 }) => {
   return (
@@ -84,16 +87,34 @@ export const UserFormCard = ({
         </div>
       </div>
 
-      <button
-        onClick={createCandidate}
-        className="w-full md:w-auto px-8 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
-        style={{ backgroundColor: colors.mossRock }}
-      >
-        <div className="flex items-center justify-center gap-2">
-          <UserPlus size={20} />
-          <span>Create Candidate</span>
-        </div>
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={createCandidate}
+          className="w-full md:w-auto px-8 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+          style={{ backgroundColor: colors.mossRock }}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <UserPlus size={20} />
+            <span>Create Candidate</span>
+          </div>
+        </button>
+
+        <button
+          onClick={onImportClick}
+          disabled={importing}
+          className="w-full md:w-auto px-8  py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+           style={{ backgroundColor: colors.mossRock, opacity: importing ? 0.6 : 1 }}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <Upload size={20} />
+            <span>{importing ? "Importing..." : "Import CSV"}</span>
+          </div>
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-500 mt-3">
+        Import CSV format: Name, Email, College, AssignedJob, DriveID
+      </p>
     </div>
   );
 };

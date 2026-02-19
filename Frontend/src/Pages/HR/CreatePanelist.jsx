@@ -19,7 +19,7 @@ import {
 import EmptyState from "../../Components/common/EmptyState.jsx";
 
 /**
- * CreatePanelist Component - Now integrated with AdminDashboard state management
+ * CreatePanelist Component - Now integrated with HRDashboard state management
  * @param {Function} onPanelistsUpdate - Callback to update parent state with panelists
  */
 export default function CreatePanelist({ onPanelistsUpdate }) {
@@ -389,7 +389,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={() => navigate("/Admin/dashboard")}
+          onClick={() => navigate("/HR/dashboard")}
           className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
           style={{ backgroundColor: colors.stonewash }}
         >

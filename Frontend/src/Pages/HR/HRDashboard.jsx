@@ -1,42 +1,48 @@
-// pages/AdminDashboard.jsx
+// pages/HRDashboard.jsx
 // Updated with React Router navigation
 
 import { useState, useEffect } from "react";
-import { Users, UsersRound, LogOut, BriefcaseBusinessIcon } from "lucide-react";
+import { Users, UsersRound, LogOut, BriefcaseBusinessIcon, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 // Import reusable components
 import StatsCard from "../../Components/common/StatsCard";
 import QuickActionCard from "../../Components/dashboard/QuickActionCard";
-import AssessmentProgressCard from "../../Components/dashboard/AssessmentProgressCard";
 
 const HRDashboard = () => {
   const navigate = useNavigate();
 
-  // State for managing candidates, jobs, and panelists
-const [candidateCount, setCandidateCount] = useState(0);
-const [panelistCount, setPanelistCount] = useState(0); 
+  // State for managing candidates, panelists, and drives
+  const [candidateCount, setCandidateCount] = useState(0);
+  const [panelistCount, setPanelistCount] = useState(0);
+  const [totalDriveCount, setTotalDriveCount] = useState(0);
 
   const API_BASE = "http://localhost:5000";
 
   // Fetch on mount
-useEffect(() => {
-  const fetchDashboardStats = async () => {
-    try {
-      const candidateRes = await axios.get(`${API_BASE}/print-candidates`);
-      setCandidateCount(candidateRes.data.count || 0);
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const candidateRes = await axios.get(`${API_BASE}/print-candidates`);
+        setCandidateCount(candidateRes.data.count || 0);
 
-      const panelistRes = await axios.get(`${API_BASE}/print-panelists`);
-      setPanelistCount(panelistRes.data.count || 0);
+        const panelistRes = await axios.get(`${API_BASE}/print-panelists`);
+        setPanelistCount(panelistRes.data.count || 0);
 
-    } catch (err) {
-      console.error("Error fetching dashboard stats:", err);
-    }
-  };
+        const drivesRes = await axios.get(`${API_BASE}/print-drives`);
+        const totalDrives =
+          typeof drivesRes.data.count === "number"
+            ? drivesRes.data.count
+            : (drivesRes.data.data || []).length;
+        setTotalDriveCount(totalDrives);
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+      }
+    };
 
-  fetchDashboardStats();
-}, []);
+    fetchDashboardStats();
+  }, []);
 
 
   // Color palette
@@ -70,48 +76,37 @@ useEffect(() => {
       bgColor: colors.secondary.goldenHour,
       lightBg: "#FFF9E6",
     },
+    {
+      title: "Total Drives",
+      count: totalDriveCount,
+      icon: MapPin,
+      bgColor: colors.primary.mossRock,
+      lightBg: "#E8F9E8",
+    },
   ];
 
   // Quick actions data - updated with dynamic counts and navigation
   const quickActions = [
     {
       title: "Drive Management",
-      // subtitle: `${jobs.length} jobs available`, 
+      subtitle: `${totalDriveCount} ${totalDriveCount === 1 ? "drive" : "drives"} available`,
       icon: BriefcaseBusinessIcon,
       color: colors.primary.rainShadow,
-      action: () => navigate("/Admin/dashboard/Drives"),
+      action: () => navigate("/HR/dashboard/Drives"),
     },
     {
       title: "View All Candidates",
       subtitle: `${candidateCount} ${candidateCount === 1 ? "Candidate" : "Candidates"}`,
       icon: Users,
       color: colors.primary.mossRock,
-      action: () => navigate("/Admin/dashboard/Create-Users"),
+      action: () => navigate("/HR/dashboard/Create-Users"),
     },
     {
       title: "Manage Panelists",
       subtitle: `${panelistCount} active panelists`,
       icon: UsersRound,
       color: colors.secondary.goldenHour,
-      action: () => navigate("/Admin/dashboard/Manage-Panelists"),
-    },
-  ];
-
-  // Assessment progress data
-  const assessmentProgress = [
-    {
-      title: "Group Discussion",
-      completed: 3,
-      total: 4,
-      pending: 1,
-      color: colors.primary.rainShadow,
-    },
-    {
-      title: "Personal Interview",
-      completed: 2,
-      total: 4,
-      pending: 2,
-      color: colors.secondary.marigoldFlame,
+      action: () => navigate("/HR/dashboard/Manage-Panelists"),
     },
   ];
 
@@ -137,9 +132,9 @@ useEffect(() => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">
-                  Campus Recruit
+                  AWL Recruit
                 </h1>
-                <p className="text-sm text-white opacity-80">Admin Dashboard</p>
+                <p className="text-sm text-white opacity-80">HR Dashboard</p>
               </div>
             </div>
 
@@ -163,7 +158,7 @@ useEffect(() => {
               className="text-3xl font-bold mb-2"
               style={{ color: colors.primary.stonewash }}
             >
-              Welcome Admin!
+              Welcome HR!
             </h2>
             <p className="text-gray-600">
               Here's what's happening with your recruitment today.
@@ -172,7 +167,7 @@ useEffect(() => {
 
           {/* Stats Cards */}
           <section className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {statsData.map((stat, index) => (
                 <StatsCard
                   key={index}
@@ -211,32 +206,6 @@ useEffect(() => {
                   action={action.action}
                 />
               ))}
-            </div>
-          </section>
-
-          {/* Assessment Progress Section */}
-          <section className="mb-8">
-            <div className="card bg-white shadow-lg">
-              <div className="card-body p-6">
-                <h3
-                  className="text-xl font-bold mb-2"
-                  style={{ color: colors.primary.stonewash }}
-                >
-                  Assessment Progress
-                </h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Track GD and PI assessments
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {assessmentProgress.map((assessment, index) => (
-                    <AssessmentProgressCard
-                      key={index}
-                      assessment={assessment}
-                    />
-                  ))}
-                </div>
-              </div>
             </div>
           </section>
 

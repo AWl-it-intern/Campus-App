@@ -1,120 +1,138 @@
 // components/drivemanagement/DriveTableRow.jsx
-import React from 'react';
-import { MapPin, Edit, UserCheck, XCircle, Calendar } from 'lucide-react';
+import { MapPin, Calendar, Trash2 } from "lucide-react";
 
 /**
  * DriveTableRow Component
- * Single row in the drives table
- * 
+ * Single row in the drives table (MongoDB schema aligned)
+ *
  * @param {object} drive - Drive data object
- * @param {function} getJobName - Get job name by ID
- * @param {function} openEditModal - Open edit modal
- * @param {function} closeDrive - Close drive function
+ * @param {function} deleteDrive - Delete drive function
  * @param {object} colors - Color palette object
+ * @param {function} onRowClick - Row click callback
  */
-export const DriveTableRow = ({ 
-  drive, 
-  getJobName,
-  openEditModal,
-  closeDrive,
-  colors 
-}) => {
-  // Status badge configuration
+export const DriveTableRow = ({ drive, deleteDrive, colors, onRowClick }) => {
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'Draft': { bg: colors.clayPot + '40', text: colors.stonewash },
-      'Live': { bg: colors.mossRock + '40', text: colors.stonewash },
-      'GD Completed': { bg: colors.softFlow + '40', text: colors.stonewash },
-      'PI Completed': { bg: colors.goldenHour + '40', text: colors.stonewash },
-      'Results Released': { bg: colors.rainShadow + '40', text: colors.stonewash },
-      'Closed': { bg: '#E5E7EB', text: '#6B7280' }
+      Draft: { bg: colors.clayPot + "40", text: colors.stonewash },
+      Live: { bg: colors.mossRock + "40", text: colors.stonewash },
+      Closed: { bg: "#E5E7EB", text: "#6B7280" },
     };
 
-    const config = statusConfig[status] || statusConfig['Draft'];
-    
+    const normalizedStatus =
+      typeof status === "string" ? status.trim() : "Draft";
+    const config = statusConfig[normalizedStatus] || statusConfig.Draft;
+
     return (
-      <span 
+      <span
         className="px-3 py-1 rounded-lg text-xs font-medium"
         style={{ backgroundColor: config.bg, color: config.text }}
       >
-        {status}
+        {normalizedStatus}
       </span>
     );
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
   };
 
+  const jobsOpening = Array.isArray(drive.JobsOpening) ? drive.JobsOpening : [];
+
   return (
-    <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+    <tr
+      className={`border-b border-gray-200 transition-colors ${
+        onRowClick ? "hover:bg-gray-50 cursor-pointer" : "hover:bg-gray-50"
+      }`}
+      onClick={() => onRowClick?.(drive)}
+    >
       <td className="px-6 py-4">
-        <span 
+        <span
           className="px-3 py-1 rounded-lg text-sm font-semibold"
-          style={{ 
-            backgroundColor: colors.rainShadow + '20',
-            color: colors.rainShadow
+          style={{
+            backgroundColor: colors.rainShadow + "20",
+            color: colors.rainShadow,
           }}
         >
-          {drive.driveId}
+          {drive.DriveID}
         </span>
       </td>
+
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <MapPin size={18} style={{ color: colors.mossRock }} />
-          <span className="font-semibold text-gray-800">{drive.collegeName}</span>
+          <span className="font-semibold text-gray-800">{drive.CollegeName}</span>
         </div>
       </td>
+
       <td className="px-6 py-4">
         <div className="flex items-center gap-2 text-gray-700">
           <Calendar size={16} className="text-gray-400" />
-          {formatDate(drive.driveDate)}
+          {formatDate(drive.StartDate)}
         </div>
       </td>
+
       <td className="px-6 py-4">
-        <span className="text-sm text-gray-600">{getJobName(drive.jobId)}</span>
+        <div className="flex items-center gap-2 text-gray-700">
+          <Calendar size={16} className="text-gray-400" />
+          {formatDate(drive.EndDate)}
+        </div>
       </td>
+
       <td className="px-6 py-4">
-        {getStatusBadge(drive.status)}
+        {jobsOpening.length === 0 ? (
+          <span className="text-sm text-gray-400 italic">No jobs</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {jobsOpening.map((jobName) => (
+              <span
+                key={`${drive.DriveID}-${jobName}`}
+                className="px-2 py-1 rounded-md text-xs font-medium"
+                style={{
+                  backgroundColor: colors.softFlow + "20",
+                  color: colors.stonewash,
+                }}
+              >
+                {jobName}
+              </span>
+            ))}
+          </div>
+        )}
       </td>
+
+      <td className="px-6 py-4">{getStatusBadge(drive.Status)}</td>
+
       <td className="px-6 py-4 text-center">
-        <span className="font-semibold text-gray-800">{drive.registrations || 0}</span>
-      </td>
-      <td className="px-6 py-4 text-center">
-        <span className="font-semibold" style={{ color: colors.rainShadow }}>
-          {drive.shortlisted || 0}
+        <span className="font-semibold text-gray-800">
+          {Number(drive.NumberOfCandidates) || 0}
         </span>
       </td>
+
       <td className="px-6 py-4 text-center">
         <span className="font-semibold" style={{ color: colors.mossRock }}>
-          {drive.selected || 0}
+          {Number(drive.Selected) || 0}
         </span>
       </td>
+
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center">
           <button
-            onClick={() => openEditModal(drive)}
-            className="px-3 py-1.5 rounded-lg font-medium text-white text-sm hover:opacity-90 transition-all"
-            style={{ backgroundColor: colors.softFlow }}
+            onClick={(event) => {
+              event.stopPropagation();
+              deleteDrive(drive);
+            }}
+            className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-all"
+            title="Delete Drive"
           >
-            <div className="flex items-center gap-1">
-              <Edit size={14} />
-              <span>Edit</span>
-            </div>
+            <Trash2 size={18} />
           </button>
-          {drive.status !== 'Closed' && (
-            <button
-              onClick={() => closeDrive(drive)}
-              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-all"
-              title="Close Drive"
-            >
-              <XCircle size={18} />
-            </button>
-          )}
         </div>
       </td>
     </tr>
