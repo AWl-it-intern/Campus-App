@@ -1,0 +1,10 @@
+{
+  "hrAdmin": {
+    "email": "hr.admin@awl.local",
+    "password": "hradmin123"
+  },
+  "candidate": {
+    "email": "candidate@awl.local",
+    "password": "Candidate@123"
+  }
+}

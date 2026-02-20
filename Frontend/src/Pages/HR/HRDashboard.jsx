@@ -111,7 +111,9 @@ const HRDashboard = () => {
   ];
 
   const handleLogout = () => {
-    navigate("/");
+    localStorage.removeItem("hr_auth");
+    localStorage.removeItem("hr_email");
+    navigate("/login");
   };
 
   return (
@@ -140,7 +142,7 @@ const HRDashboard = () => {
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 text-white transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#FFAD53] hover:bg-opacity-20 text-white transition-all border-2 cursor-pointer"
             >
               <LogOut size={20} />
               <span className="font-medium">Logout</span>

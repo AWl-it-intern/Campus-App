@@ -1,387 +1,416 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  Bell,
+  Check,
+  CircleAlert,
+  FileText,
+  Lock,
+  LogOut,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 
-const CandidateDashboard = () => {
-   // Show welcome alert
+import awlLogo from "../Common/Awllogo.svg";
+import {
+  fetchLoggedInCandidate,
+  readSavedCandidateApplication,
+} from "../../utils/candidateData";
+
+const defaultNotifications = [
+  {
+    type: "Under Review",
+    message: "Your application is currently under review by the recruitment team.",
+    unread: true,
+  },
+  {
+    type: "Shortlisted",
+    message: "You will see a shortlisted update here once the screening is complete.",
+    unread: false,
+  },
+  {
+    type: "Regret",
+    message: "If not selected for the next round, the regret update will appear here.",
+    unread: false,
+  },
+];
+
+const defaultProgressItems = [
+  { label: "Application Submitted", status: "completed", note: "" },
+  { label: "Resume Screening", status: "completed", note: "" },
+  { label: "GD Round", status: "completed", note: "" },
+  { label: "PI Round", status: "active", note: "PI Scheduled" },
+  { label: "Final Result", status: "locked", note: "" },
+];
+
+function formatDate(value) {
+  if (!value) return "15 Jan 2024";
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return String(value);
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function ProgressIcon({ status }) {
+  if (status === "completed") {
+    return (
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0B8A8C] text-white">
+        <Check size={18} />
+      </div>
+    );
+  }
+
+  if (status === "active") {
+    return (
+      <div className="flex h-8 w-8 items-center justify-center rounded-full border-[6px] border-[#0B8A8C] bg-white">
+        <div className="h-2.5 w-2.5 rounded-full bg-[#0B8A8C]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E4E7EC] text-[#98A2B3]">
+      <Lock size={16} />
+    </div>
+  );
+}
+
+export default function CandidateDashboard() {
   const navigate = useNavigate();
-  const [candidateName, setCandidateName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [dashboardData, setDashboardData] = useState({
+    candidateName: "Rahul",
+    statusBadge: "PI Scheduled",
+    jobTitle: "Management Trainee - Sales",
+    gdScore: 27,
+    gdMax: 30,
+    interviewTitle: "Personal Interview Scheduled",
+    interviewDescription:
+      "Your Personal Interview is scheduled for 14th Feb, 10:00 AM. Panelist: Ms. Kavita Das.",
+    progressItems: defaultProgressItems,
+    quickInfo: {
+      applicationId: "CAND-001",
+      appliedOn: "15 Jan 2024",
+      institute: "IIM Bangalore",
+    },
+    notifications: defaultNotifications,
+  });
 
-  // Logic preserved exactly as requested
   useEffect(() => {
-    const interval = setInterval(() => {
-      const name = localStorage.getItem("candidate_name");
-      if (name) {
-        setCandidateName(name);
-        clearInterval(interval);
-      }
-    }, 100);
+    let isMounted = true;
 
-    return () => clearInterval(interval);
+    const loadDashboard = async () => {
+      setIsLoading(true);
+      setLoadError("");
+
+      const savedApplication = readSavedCandidateApplication();
+      let candidate = null;
+      let apiError = "";
+
+      try {
+        candidate = await fetchLoggedInCandidate();
+      } catch (error) {
+        console.error("Candidate fetch failed:", error);
+        apiError = "Live candidate data is unavailable. Showing saved details.";
+      }
+
+      const candidateName =
+        savedApplication?.personal?.fullName ||
+        candidate?.name ||
+        localStorage.getItem("candidate_name") ||
+        "Rahul";
+
+      const jobTitle =
+        savedApplication?.meta?.appliedRole ||
+        candidate?.AssignedJob ||
+        "Management Trainee - Sales";
+
+      const statusBadge = savedApplication?.interviewDetails
+        ? "PI Scheduled"
+        : savedApplication?.applicationStatus || "PI Scheduled";
+
+      const gdScore = Number(savedApplication?.gdScore ?? 27) || 27;
+      const gdMax = Number(savedApplication?.gdMax ?? 30) || 30;
+
+      const interviewDate = savedApplication?.interviewDetails?.date || "14th Feb";
+      const interviewTime = savedApplication?.interviewDetails?.time || "10:00 AM";
+      const interviewPanelist =
+        savedApplication?.interviewDetails?.panelist || "Ms. Kavita Das";
+
+      const applicationId =
+        savedApplication?.meta?.applicationId ||
+        (candidate?._id
+          ? `CAND-${String(candidate._id).slice(-3).toUpperCase().padStart(3, "0")}`
+          : "CAND-001");
+
+      const appliedOn = savedApplication?.meta?.appliedOn || formatDate(candidate?.createdAt);
+      const institute = savedApplication?.meta?.institute || candidate?.college || "IIM Bangalore";
+
+      const notifications =
+        Array.isArray(savedApplication?.notifications) && savedApplication.notifications.length > 0
+          ? savedApplication.notifications
+          : defaultNotifications;
+
+      const progressItems = [...defaultProgressItems];
+      if (statusBadge === "Shortlisted") {
+        progressItems[3] = { label: "PI Round", status: "completed", note: "Completed" };
+        progressItems[4] = { label: "Final Result", status: "active", note: "Shortlisted" };
+      } else if (statusBadge === "Regret") {
+        progressItems[3] = { label: "PI Round", status: "completed", note: "Completed" };
+        progressItems[4] = { label: "Final Result", status: "active", note: "Regret" };
+      }
+
+      if (isMounted) {
+        setDashboardData({
+          candidateName,
+          statusBadge,
+          jobTitle,
+          gdScore,
+          gdMax,
+          interviewTitle: "Personal Interview Scheduled",
+          interviewDescription: `Your Personal Interview is scheduled for ${interviewDate}, ${interviewTime}. Panelist: ${interviewPanelist}.`,
+          progressItems,
+          quickInfo: {
+            applicationId,
+            appliedOn,
+            institute,
+          },
+          notifications,
+        });
+        setLoadError(apiError);
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  //  alert(`Welcome, ${name}!`);  
+  const firstName = useMemo(() => {
+    const sourceName = String(dashboardData.candidateName || "").trim();
+    if (!sourceName) return "Rahul";
+    return sourceName.split(" ")[0];
+  }, [dashboardData.candidateName]);
+
+  const gdProgress = useMemo(() => {
+    if (!dashboardData.gdMax) return 0;
+    return Math.max(0, Math.min(100, (dashboardData.gdScore / dashboardData.gdMax) * 100));
+  }, [dashboardData.gdScore, dashboardData.gdMax]);
+
+  const unreadNotificationsCount = useMemo(() => {
+    const count = dashboardData.notifications.filter((notification) => notification.unread).length;
+    return count > 0 ? count : 1;
+  }, [dashboardData.notifications]);
 
   const handleLogout = () => {
     localStorage.removeItem("candidate_auth");
     localStorage.removeItem("candidate_name");
-    navigate("/");
+    localStorage.removeItem("candidate_email");
+    localStorage.removeItem("candidate_id");
+    navigate("/login");
+  };
+
+  const handleViewNotifications = () => {
+    const text = dashboardData.notifications
+      .map((notification) => `${notification.type}: ${notification.message}`)
+      .join("\n\n");
+    alert(text || "No notifications available.");
   };
 
   return (
-    <div
-      className="min-h-screen bg-gray-50 text-base-content font-sans"
-      data-theme="campusRecruit"
-    >
-      {/* Clean Professional Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center text-white font-bold text-lg">
-              C
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">
-                Campus Recruit
-              </h1>
-              <p className="text-xs text-gray-500">Hiring Made Simple</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F2F2F4]">
+      <header className="border-b border-[#D6D6DC] bg-white">
+        <div className="mx-auto flex h-16 max-w-[1300px] items-center justify-between px-4 sm:px-6">
+          <img src={awlLogo} alt="AWL logo" className="h-10 w-auto" />
 
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden md:block">
-              <p className="text-sm text-gray-600">
-                Welcome,{" "}
-                <span className="font-semibold text-gray-900">
-                  {candidateName || "Candidate"}
-                </span>
-              </p>
-              <p className="text-xs text-gray-500">Candidate Portal</p>
-            </div>
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
-              onClick={handleLogout}
-              className="btn btn-sm bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 normal-case font-medium"
+              type="button"
+              onClick={handleViewNotifications}
+              className="relative rounded-full p-2 text-[#111827] transition hover:bg-[#F3F4F6]"
+              aria-label="View notifications"
             >
-              <svg
-                className="h-4 w-4"
-                fill="none" 
-                viewBox="0 0 24 24"
-                stroke="red"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Logout
+              <Bell size={19} />
+              <span className="absolute right-0.5 top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[11px] font-semibold text-white">
+                {unreadNotificationsCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-full p-2 text-[#111827] transition hover:bg-[#F3F4F6]"
+              aria-label="Logout"
+            >
+              <LogOut size={19} />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Status Update Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-          <div className="p-2 bg-blue-500 rounded-lg text-white shrink-0">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill= "none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              ></path>
-            </svg>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-base">
-              Status Update: Results Pending
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Your PI Round assessment is complete. Hang tight!
-            </p>
-          </div>
-        </div>
+      <main className="px-4 pb-10 pt-8 sm:px-6">
+        <div className="mx-auto max-w-[500px]">
+          <h1 className="text-3xl font-bold text-[#001F3F] sm:text-4xl">
+            Welcome back, {firstName}.
+          </h1>
+          <p className="mt-1 text-base text-[#4A5565] sm:text-[20px]">
+            Let&apos;s check your status.
+          </p>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Application Profile Card */}
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
-              <h2 className="text-sm font-bold text-gray-900 uppercase">
-                Application Profile
-              </h2>
+          {loadError && (
+            <div className="mt-4 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]">
+              {loadError}
             </div>
-            <div className="p-6 space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-500 uppercase">
-                  Institution
-                </span>
-                <span className="text-sm font-semibold text-gray-900">
-                  IIT Delhi
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-500 uppercase">
-                  Department
-                </span>
-                <span className="text-sm font-semibold text-gray-900">CSE</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-500 uppercase">
-                  Academic Score
-                </span>
-                <span className="text-sm font-bold text-black">85.5%</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-xs font-medium text-gray-500 uppercase">
-                  Submitted
-                </span>
-                <span className="text-sm text-gray-700">15 Jan 2026</span>
-              </div>
+          )}
+
+          {isLoading ? (
+            <div className="mt-6 rounded-2xl border border-[#D6D6DC] bg-white p-8 text-center">
+              <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-b-2 border-[#0B8A8C]" />
+              <p className="text-[#4A5565]">Loading dashboard...</p>
             </div>
-          </div>
-
-          {/* Assessment Scores Card - Merged */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
-                <h2 className="text-sm font-bold text-gray-900 uppercase">
-                  Assessment Scores
-                </h2>
-              </div>
-              <div className="p-6 space-y-6">
-                {/* Aptitude Test */}
-                <div className="pb-6 border-b border-gray-100">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900">
-                        Aptitude Test
-                      </h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">
-                        85<span className="text-base text-gray-400">/100</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: "85%" }}
-                    ></div>
-                  </div>
+          ) : (
+            <>
+              <section className="mt-6 rounded-2xl border-2 border-[#0B8A8C] bg-[#D6E8EC] p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-[#001F3F] sm:text-[32px]">
+                    Application Status
+                  </h2>
+                  <span className="rounded-full border border-[#D8B4FE] bg-[#EBD8FF] px-4 py-1 text-sm font-medium text-[#7E22CE]">
+                    {dashboardData.statusBadge}
+                  </span>
                 </div>
 
-                {/* Group Discussion */}
-                <div className="pb-6 border-b border-gray-100">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900">
-                        Group Discussion
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Assessed by Panelist name
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">
-                        26<span className="text-base text-gray-400">/30</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: "86.67%" }}
-                    ></div>
-                  </div>
-                </div>
+                <p className="mt-8 text-xl text-[#1E3A5F] sm:text-[30px]">
+                  Job: {dashboardData.jobTitle}
+                </p>
 
-                {/* Personal Interview */}
-                <div className="pb-6 border-b border-gray-100">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900">
-                        Personal Interview
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Assessed by Panelist name
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">
-                        40<span className="text-base text-gray-400">/45</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-600 h-2 rounded-full"
-                      style={{ width: "88.89%" }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Recommendation Section */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase">
-                      Panel Recommendation
-                    </h3>
-                    <span className="badge bg-success text-white border-0 font-semibold px-3">
-                      SELECT
+                <div className="mt-8">
+                  <div className="mb-2 flex items-center justify-between text-sm sm:text-[24px]">
+                    <span className="text-[#334155]">GD Score</span>
+                    <span className="font-semibold text-[#0B8A8C]">
+                      {dashboardData.gdScore}/{dashboardData.gdMax}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    "Excellent problem-solving skills. Strong technical
-                    foundation. Shows great potential for leadership roles."
-                  </p>
-                  <div className="mt-4 pt-4 border-t border-green-200">
-                    <p className="text-xs font-semibold text-success">
-                      ✓ Processed to Next Round
+                  <div className="h-2 w-full rounded-full bg-[#9FAAB1]">
+                    <div
+                      className="h-2 rounded-full bg-[#040B2A]"
+                      style={{ width: `${gdProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-6 rounded-2xl border border-[#A4C8FF] bg-[#E7F0FF] px-4 py-5 text-[#1E3A8A] sm:px-5">
+                <div className="flex items-start gap-3">
+                  <CircleAlert size={22} className="mt-0.5 shrink-0" />
+                  <div>
+                    <h3 className="text-lg font-semibold sm:text-[28px]">
+                      {dashboardData.interviewTitle}
+                    </h3>
+                    <p className="mt-1 text-sm sm:text-[22px]">
+                      {dashboardData.interviewDescription}
                     </p>
                   </div>
                 </div>
+              </section>
+
+              <section className="mt-6 rounded-2xl border border-[#D6D6DC] bg-white p-5 sm:p-6">
+                <h3 className="text-2xl font-bold text-[#001F3F] sm:text-[32px]">
+                  Application Progress
+                </h3>
+
+                <div className="mt-6">
+                  {dashboardData.progressItems.map((item, index) => {
+                    const isLast = index === dashboardData.progressItems.length - 1;
+                    const nextStatus = !isLast
+                      ? dashboardData.progressItems[index + 1].status
+                      : "locked";
+                    const connectorColor =
+                      nextStatus === "locked" ? "border-[#D1D5DB]" : "border-[#0B8A8C]";
+
+                    return (
+                      <div key={item.label} className={`relative pl-12 ${isLast ? "" : "pb-8"}`}>
+                        {!isLast && (
+                          <div
+                            className={`absolute left-[15px] top-9 h-[calc(100%-22px)] border-l-2 ${connectorColor}`}
+                          />
+                        )}
+
+                        <div className="absolute left-0 top-0">
+                          <ProgressIcon status={item.status} />
+                        </div>
+
+                        <p
+                          className={`text-xl font-semibold sm:text-[30px] ${
+                            item.status === "locked" ? "text-[#98A2B3]" : "text-[#001F3F]"
+                          }`}
+                        >
+                          {item.label}
+                        </p>
+                        {item.note && (
+                          <p className="mt-0.5 text-sm text-[#0B5E82] sm:text-[22px]">
+                            {item.note}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <div className="mt-6 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => navigate("/candidate/application")}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0B8A8C] px-4 text-[16px] font-semibold text-white transition hover:bg-[#087578]"
+                >
+                  <FileText size={16} />
+                  View Application
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleViewNotifications}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#0B8A8C] bg-transparent px-4 text-[16px] font-semibold text-[#0B8A8C] transition hover:bg-[#E8F5F5]"
+                >
+                  <Bell size={16} />
+                  View All Notifications
+                </button>
               </div>
-            </div>
 
-            {/* Journey Progress Card */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
-                <h2 className="text-sm font-bold text-gray-900 uppercase">
-                  Journey Progress
-                </h2>
-              </div>
-              <div className="p-8">
-                <div className="flex items-center justify-between relative">
+              <section className="mt-6 rounded-2xl border border-[#D6D6DC] bg-white p-5 sm:p-6">
+                <h4 className="text-lg font-semibold text-[#344054] sm:text-[24px]">Quick Info</h4>
 
-                  {/* Progress Line */}
-                  <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 -z-10"></div>
-                  <div
-                    className="absolute top-5 left-0 h-0.5 bg-green-600 z-10"
-                    style={{ width: "80%" }}
-                  ></div>
-
-                  {/* Step 1: Submitted */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mb-2">
-                      <svg
-                        className="h-5 w-5"
-                        fill= "none"
-                        viewBox="0 0 24 24"
-                       stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-xs font-semibold text-gray-900">
-                      Submitted
-                    </p>
+                <div className="mt-5 space-y-3 text-sm sm:text-[22px]">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[#4B5563]">Application ID:</span>
+                    <span className="font-medium text-[#001F3F]">
+                      {dashboardData.quickInfo.applicationId}
+                    </span>
                   </div>
-
-                  {/* Step 2: Shortlisted */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mb-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-xs font-semibold text-gray-900">
-                      Shortlisted
-                    </p>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[#4B5563]">Applied On:</span>
+                    <span className="font-medium text-[#001F3F]">
+                      {dashboardData.quickInfo.appliedOn}
+                    </span>
                   </div>
-
-                  {/* Step 3: GD Round */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mb-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-xs font-semibold text-gray-900">
-                      GD Round
-                    </p>
-                  </div>
-
-                  {/* Step 4: PI Round */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-bold mb-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-xs font-semibold text-gray-900">
-                      PI Round
-                    </p>
-                  </div>
-
-                  {/* Step 5: Result */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold mb-2">
-                      <span className="text-lg">?</span>
-                    </div>
-                    <p className="text-xs font-semibold text-gray-500">
-                      Result
-                    </p>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[#4B5563]">Institute:</span>
+                    <span className="font-medium text-[#001F3F]">
+                      {dashboardData.quickInfo.institute}
+                    </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
+              </section>
+            </>
+          )}
         </div>
-
-        {/* Footer */}
-        <footer className="text-center py-6 text-gray-400 text-xs border-t border-gray-200 mt-8">
-          © 2026 Campus Recruit Infrastructure. All rights reserved.
-        </footer>
       </main>
     </div>
   );
-};
-
-export default CandidateDashboard;
+}

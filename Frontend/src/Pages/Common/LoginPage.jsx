@@ -1,15 +1,65 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import awlLogo from "./Awllogo.svg";
+import tempAuth from "../../data/tempAuth.json";
 
 const ROLE_TABS = ["Candidate", "Panelist", "HR Admin", "College"];
 
 const CampusRecruitLogin = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("Candidate");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const hrAdmin = tempAuth.hrAdmin;
+  const candidateAuth = tempAuth.candidate || { email: "", password: "" };
+
+  const handleCandidateLogin = () => {
+    const matchesEmail =
+      email.trim().toLowerCase() === candidateAuth.email.toLowerCase();
+    const matchesPassword = password === candidateAuth.password;
+
+    if (!matchesEmail || !matchesPassword) {
+      alert("Invalid candidate credentials.");
+      return;
+    }
+
+    localStorage.setItem("candidate_auth", "true");
+    localStorage.setItem("candidate_name", "Candidate");
+    localStorage.setItem("candidate_email", candidateAuth.email);
+    localStorage.removeItem("candidate_id");
+    localStorage.removeItem("hr_auth");
+    localStorage.removeItem("hr_email");
+    navigate("/candidate-dashboard");
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (activeTab === "Candidate") {
+      handleCandidateLogin();
+      return;
+    }
+
+    if (activeTab === "HR Admin") {
+      const isValidHrLogin =
+        email.trim().toLowerCase() === hrAdmin.email.toLowerCase() &&
+        password === hrAdmin.password;
+
+      if (!isValidHrLogin) {
+        alert("Invalid HR Admin credentials.");
+        return;
+      }
+
+      localStorage.setItem("hr_auth", "true");
+      localStorage.setItem("hr_email", hrAdmin.email);
+      localStorage.removeItem("candidate_auth");
+      localStorage.removeItem("candidate_name");
+      localStorage.removeItem("candidate_email");
+      localStorage.removeItem("candidate_id");
+      navigate("/HR/dashboard");
+      return;
+    }
+
     console.log(`Logging in as ${activeTab}:`, { email, password });
   };
 

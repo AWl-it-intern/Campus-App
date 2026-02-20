@@ -5,7 +5,7 @@ import CandidateRegister from "../Pages/Candidate/CandidateRegister";
 import CandidateDashboard from "../Pages/Candidate/CandidateDashboard";
 import ApplicationForm from "../Pages/Candidate/Applicationform";
 import NotFound from "../Pages/Common/NotFound";
-// import ProtectedRoute from "./ProtectedRoute"; 
+import ProtectedRoute from "./ProtectedRoute";
 import HRDashboard from "../Pages/HR/HRDashboard";
 import DriveManagement from "../Pages/HR/DriveManagement";
 import DrivePage from "../Pages/HR/DrivePage";
@@ -22,31 +22,37 @@ export default function AppRoutes() {
       <Route path="/register" element={<CandidateRegister />} />
 
       {/* Candidate routes */}
-      <Route
-        path="/candidate-dashboard"
-        element={
-            <CandidateDashboard />
-        }
-      />
-      <Route
-        path="/candidate/application"
-        element={
-            <ApplicationForm />
-        }
-      />
+      <Route element={<ProtectedRoute storageKey="candidate_auth" redirectTo="/login" />}>
+        <Route
+          path="/candidate-dashboard"
+          element={
+              <CandidateDashboard />
+          }
+        />
+        <Route
+          path="/candidate/application"
+          element={
+              <ApplicationForm />
+          }
+        />
+      </Route>
 
       {/* Panelist routes */}
 
       {/* HR */}
-      <Route path="/HR/dashboard/Create-Users" element={<CreateUsers />} />
-      <Route path="/HR/dashboard" element={<HRDashboard />} />
       <Route
-        path="/HR/dashboard/Manage-Panelists"
-        element={<CreatePanelist />}
-      />
-       <Route path="/HR/dashboard/Drives" element={<DriveManagement />} />
-       <Route path="/HR/dashboard/Drives/:driveId" element={<DrivePage />} />
-       <Route path="/HR/dashboard/Create-Job" element={<CreateJob/>}/>
+        element={<ProtectedRoute storageKey="hr_auth" redirectTo="/login" />}
+      >
+        <Route path="/HR/dashboard/Create-Users" element={<CreateUsers />} />
+        <Route path="/HR/dashboard" element={<HRDashboard />} />
+        <Route
+          path="/HR/dashboard/Manage-Panelists"
+          element={<CreatePanelist />}
+        />
+        <Route path="/HR/dashboard/Drives" element={<DriveManagement />} />
+        <Route path="/HR/dashboard/Drives/:driveId" element={<DrivePage />} />
+        <Route path="/HR/dashboard/Create-Job" element={<CreateJob />} />
+      </Route>
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
