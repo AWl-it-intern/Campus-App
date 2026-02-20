@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   Check,
@@ -80,6 +80,8 @@ export default function CandidateDashboard() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef(null);
   const [dashboardData, setDashboardData] = useState({
     candidateName: "Rahul",
     statusBadge: "PI Scheduled",
@@ -191,6 +193,24 @@ export default function CandidateDashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isNotificationsOpen) return undefined;
+
+    const closeOnOutsideClick = (event) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+    };
+  }, [isNotificationsOpen]);
+
   const firstName = useMemo(() => {
     const sourceName = String(dashboardData.candidateName || "").trim();
     if (!sourceName) return "Rahul";
@@ -215,31 +235,80 @@ export default function CandidateDashboard() {
     navigate("/login");
   };
 
-  const handleViewNotifications = () => {
-    const text = dashboardData.notifications
-      .map((notification) => `${notification.type}: ${notification.message}`)
-      .join("\n\n");
-    alert(text || "No notifications available.");
+  const toggleNotifications = () => {
+    setIsNotificationsOpen((previous) => !previous);
+  };
+
+  const openNotifications = () => {
+    setIsNotificationsOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const getNotificationAccent = (type) => {
+    if (type === "Shortlisted") return "border-[#86EFAC] bg-[#ECFDF3] text-[#166534]";
+    if (type === "Regret") return "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]";
+    return "border-[#A4C8FF] bg-[#E7F0FF] text-[#1E3A8A]";
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F2F4]">
+    <div
+      className="min-h-screen bg-white text-[#0A0A0A]"
+      style={{ fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}
+    >
       <header className="border-b border-[#D6D6DC] bg-white">
         <div className="mx-auto flex h-16 max-w-[1300px] items-center justify-between px-4 sm:px-6">
           <img src={awlLogo} alt="AWL logo" className="h-10 w-auto" />
 
-          <div className="flex items-center gap-1 sm:gap-2">
-            <button
-              type="button"
-              onClick={handleViewNotifications}
-              className="relative rounded-full p-2 text-[#111827] transition hover:bg-[#F3F4F6]"
-              aria-label="View notifications"
-            >
-              <Bell size={19} />
-              <span className="absolute right-0.5 top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[11px] font-semibold text-white">
-                {unreadNotificationsCount}
-              </span>
-            </button>
+          <div className="flex items-center gap-1 sm:gap-2" ref={notificationsRef}>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={toggleNotifications}
+                className="relative rounded-full p-2 text-[#111827] transition hover:bg-[#F3F4F6]"
+                aria-label="View notifications"
+              >
+                <Bell size={19} />
+                <span className="absolute right-0.5 top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[11px] font-semibold text-white">
+                  {unreadNotificationsCount}
+                </span>
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="absolute right-0 z-50 mt-2 w-[310px] rounded-2xl border border-[#D6D6DC] bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)] sm:w-[360px]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-[#001F3F]">Notifications</h4>
+                    <button
+                      type="button"
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="rounded-md px-2 py-1 text-xs font-medium text-[#475467] hover:bg-[#F2F4F7]"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {dashboardData.notifications.map((notification) => (
+                      <div
+                        key={`${notification.type}-${notification.message}`}
+                        className={`rounded-xl border px-3 py-2 ${getNotificationAccent(
+                          notification.type,
+                        )}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold">{notification.type}</p>
+                          {notification.unread && (
+                            <span className="rounded-full bg-[#FF3B3B] px-2 py-0.5 text-[10px] font-semibold text-white">
+                              New
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs leading-5">{notification.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button
               type="button"
@@ -375,7 +444,7 @@ export default function CandidateDashboard() {
 
                 <button
                   type="button"
-                  onClick={handleViewNotifications}
+                  onClick={openNotifications}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#0B8A8C] bg-transparent px-4 text-[16px] font-semibold text-[#0B8A8C] transition hover:bg-[#E8F5F5]"
                 >
                   <Bell size={16} />
