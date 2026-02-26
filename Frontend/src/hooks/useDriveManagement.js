@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createDrive, deleteDrive, fetchDrives } from "../services/drivesService";
 import { fetchJobs } from "../services/jobsService";
+import { updateDrive } from "../services/drivesService";
 
 const EMPTY_DRIVE_FORM = {
   DriveID: "",
@@ -26,6 +27,8 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [collegeFilter, setCollegeFilter] = useState("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingDrive, setEditingDrive] = useState(null);
 
   const loadJobs = async () => {
     try {
@@ -121,6 +124,7 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
       if (response?.success) {
         setNewDrive(EMPTY_DRIVE_FORM);
         await loadDrives();
+        await loadJobs();
         alert("Campus Drive created successfully.");
       } else {
         alert("Failed to create drive: " + (response?.error || "Unknown error"));
@@ -155,6 +159,33 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
         console.error("Error deleting drive:", error);
         alert("Failed to delete drive. Please check your connection and try again.");
       }
+    }
+  };
+
+  const openEditDrive = (drive) => {
+    setEditingDrive(drive);
+    setIsEditOpen(true);
+  };
+
+  const closeEditDrive = () => {
+    setEditingDrive(null);
+    setIsEditOpen(false);
+  };
+
+  const saveDriveEdits = async (driveId, payload) => {
+    try {
+      const response = await updateDrive(driveId, payload);
+      if (response?.success) {
+        await loadDrives();
+        await loadJobs();
+        alert("Drive updated successfully.");
+        closeEditDrive();
+      } else {
+        alert("Failed to update drive: " + (response?.error || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error updating drive:", error);
+      alert("Failed to update drive.");
     }
   };
 
@@ -240,5 +271,10 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
     stats,
     handleCreateDrive,
     handleDeleteDrive,
+    isEditOpen,
+    editingDrive,
+    openEditDrive,
+    closeEditDrive,
+    saveDriveEdits,
   };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCandidates } from "../services/candidatesService";
 import { fetchDrives } from "../services/drivesService";
+import { fetchJobs } from "../services/jobsService";
 
 const safeLower = (value) => String(value || "").trim().toLowerCase();
 
@@ -23,6 +24,7 @@ export default function useDriveCandidates({ jobName, driveId }) {
   const [error, setError] = useState("");
   const [candidates, setCandidates] = useState([]);
   const [drives, setDrives] = useState([]);
+  const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -32,9 +34,10 @@ export default function useDriveCandidates({ jobName, driveId }) {
       setError("");
 
       try {
-        const [fetchedCandidates, fetchedDrives] = await Promise.all([
+        const [fetchedCandidates, fetchedDrives, fetchedJobs] = await Promise.all([
           fetchCandidates({ limit: 5000 }),
           fetchDrives({ limit: 5000 }),
+          fetchJobs({ limit: 5000 }),
         ]);
 
         if (!isMounted) return;
@@ -47,6 +50,7 @@ export default function useDriveCandidates({ jobName, driveId }) {
 
         setCandidates(Array.isArray(fetchedCandidates) ? fetchedCandidates : []);
         setDrives(drivesData);
+        setJobs(Array.isArray(fetchedJobs) ? fetchedJobs : []);
       } catch (error) {
         if (!isMounted) return;
         console.error("Failed to fetch candidates/drives:", error);
@@ -87,6 +91,13 @@ export default function useDriveCandidates({ jobName, driveId }) {
 
     if (!jobLower || jobName === "Job") return [];
 
+    const jobRecord = (jobs || []).find(
+      (job) => safeLower(job.JobName) === jobLower,
+    );
+    const assignedIds = Array.isArray(jobRecord?.assignedCandidates)
+      ? jobRecord.assignedCandidates.map((id) => String(id))
+      : [];
+
     const driveRecord =
       (drives || []).find(
         (drive) =>
@@ -118,9 +129,11 @@ export default function useDriveCandidates({ jobName, driveId }) {
           ? true
           : candidateKeys.some((key) => driveKeySet.has(key));
 
-      return hasJob && matchesDrive;
+      const matchesAssignedList = assignedIds.includes(String(candidate._id));
+
+      return matchesDrive && (matchesAssignedList || hasJob);
     });
-  }, [candidates, jobName, driveId, drives]);
+  }, [candidates, jobName, driveId, drives, jobs]);
 
   return {
     loading,

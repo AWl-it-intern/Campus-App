@@ -20,3 +20,8 @@ export async function fetchDriveById(driveId) {
   const { data } = await apiClient.get(`/drive/${driveId}`);
   return data?.data || null;
 }
+
+export async function updateDrive(driveId, payload) {
+  const { data } = await apiClient.put(`/drive/${driveId}`, payload);
+  return data;
+}

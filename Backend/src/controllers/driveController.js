@@ -3,6 +3,7 @@ import {
   getDrive,
   listDrives,
   removeDrive,
+  updateDrive,
 } from "../services/driveService.js";
 
 /* -------- Insert Drive -------- */
@@ -68,6 +69,38 @@ export async function deleteDriveHandler(req, res) {
   }
 }
 
+/* -------- Update Drive -------- */
+export async function updateDriveHandler(req, res) {
+  try {
+    const driveId = req.params.id;
+    if (!driveId) {
+      return res.status(400).json({
+        success: false,
+        error: "Drive ID is required",
+      });
+    }
+
+    const updateData = req.body;
+    const result = await updateDrive(driveId, updateData);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Drive not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Drive updated successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+}
 /* -------- Print Drives API -------- */
 export async function printDrivesHandler(req, res) {
   try {

@@ -1,4 +1,10 @@
-import { insertDrive, getDriveById, deleteDrive, printDrives } from "../../db.js";
+import {
+  insertDrive,
+  getDriveById,
+  deleteDrive,
+  printDrives,
+  editDrive,
+} from "../../db.js";
 
 export async function createDrive(payload) {
   return insertDrive(payload);
@@ -14,4 +20,8 @@ export async function removeDrive(driveId) {
 
 export async function listDrives({ limit = 0, debug = false } = {}) {
   return printDrives(limit, debug);
+}
+
+export async function updateDrive(driveId, payload) {
+  return editDrive(driveId, payload);
 }

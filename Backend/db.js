@@ -105,6 +105,10 @@ export async function insertCandidate(candidateData) {
     const { start } = await getNextSequence("candidateId", 1);
     const candidateId = formatCandidateId(start);
     const result = await db.collection("Candidate").insertOne({
+      ApplicationStatus: candidateData?.ApplicationStatus || "Under Review",
+      AssignedPanelist: Array.isArray(candidateData?.AssignedPanelist)
+        ? candidateData.AssignedPanelist
+        : [],
       ...candidateData,
       CandidateID: candidateId,
       createdAt: new Date(),
@@ -140,6 +144,10 @@ export async function insertManyCandidates(candidatesData = []) {
     }
 
     return {
+      ApplicationStatus: candidate?.ApplicationStatus || "Under Review",
+      AssignedPanelist: Array.isArray(candidate?.AssignedPanelist)
+        ? candidate.AssignedPanelist
+        : [],
       ...candidate,
       CandidateID: formatCandidateId(start + index),
       email: String(candidate.email).trim(),
@@ -212,6 +220,10 @@ export async function insertJob(jobData) {
 
   try {
     const result = await db.collection("Jobs").insertOne({
+      Drive: jobData?.Drive && typeof jobData.Drive === "object" ? jobData.Drive : {},
+      assignedPanelist: Array.isArray(jobData?.assignedPanelist)
+        ? jobData.assignedPanelist
+        : [],
       ...jobData,
       createdAt: new Date(),
     });
@@ -310,6 +322,14 @@ export async function insertDrive(driveData) {
 
   console.log(" Drive inserted:", result.insertedId);
 
+  if (normalizedJobs.length > 0) {
+    const driveMapping = { [normalizedDriveId]: String(driveData.CollegeName).trim() };
+    await db.collection("Jobs").updateMany(
+      { JobName: { $in: normalizedJobs } },
+      { $set: { Drive: driveMapping } },
+    );
+  }
+
   return result;
 }
 
@@ -327,11 +347,33 @@ export async function printDrives(limit = 100, debug = false) {
 
   const drives = await cursor.toArray();
 
+  const drivesWithCounts = [];
+  for (const drive of drives) {
+    const driveKeySet = new Set(
+      [drive._id, drive.id, drive.DriveID]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase()),
+    );
+    const candidateCount = await db.collection("Candidate").countDocuments({
+      $or: [
+        { driveId: { $in: Array.from(driveKeySet) } },
+        { DriveID: { $in: Array.from(driveKeySet) } },
+        { assignedDriveId: { $in: Array.from(driveKeySet) } },
+        { AssignedDriveId: { $in: Array.from(driveKeySet) } },
+      ],
+    });
+
+    drivesWithCounts.push({
+      ...drive,
+      NumberOfCandidates: candidateCount,
+    });
+  }
+
   if (debug) {
     console.log(` Drive collection | Count: ${drives.length}`);
   }
 
-  return drives;
+  return drivesWithCounts;
 }
 
 /* -------- Delete Drive -------- */
@@ -345,6 +387,25 @@ export async function deleteDrive(id) {
     .deleteOne({ _id: new ObjectId(id) });
 
   console.log(" Drive deleted:", result.deletedCount);
+
+  return result;
+}
+
+/* -------- Edit Drive -------- */
+export async function editDrive(id, updateData) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const result = await db.collection("Drives").updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+    },
+  );
 
   return result;
 }

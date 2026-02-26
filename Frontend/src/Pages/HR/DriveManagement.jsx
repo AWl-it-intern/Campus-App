@@ -20,6 +20,7 @@ import StatsCard from "../../Components/common/StatsCard.jsx";
 import EmptyState from "../../Components/common/EmptyState.jsx";
 import HR_COLORS from "../../theme/hrPalette";
 import useDriveManagement from "../../hooks/useDriveManagement";
+import EditDriveModal from "../../Components/drivemanagement/EditDriveModal.jsx";
 
 export default function DriveManagement({ onDrivesUpdate }) {
   const navigate = useNavigate();
@@ -46,6 +47,11 @@ export default function DriveManagement({ onDrivesUpdate }) {
     stats,
     handleCreateDrive,
     handleDeleteDrive,
+    isEditOpen,
+    editingDrive,
+    openEditDrive,
+    closeEditDrive,
+    saveDriveEdits,
   } = useDriveManagement({ onDrivesUpdate });
 
   const openDriveDetails = (drive) => {
@@ -251,6 +257,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
                       deleteDrive={handleDeleteDrive}
                       colors={colors}
                       onRowClick={openDriveDetails}
+                      onEdit={openEditDrive}
                     />
                   ))
                 )}
@@ -259,6 +266,14 @@ export default function DriveManagement({ onDrivesUpdate }) {
           </div>
         </div>
       </div>
+
+      <EditDriveModal
+        isOpen={isEditOpen}
+        drive={editingDrive}
+        jobs={jobs}
+        onClose={closeEditDrive}
+        onSave={saveDriveEdits}
+      />
     </div>
   );
 }

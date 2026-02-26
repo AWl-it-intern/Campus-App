@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCandidates } from "../services/candidatesService";
 import { fetchDriveById } from "../services/drivesService";
+import { fetchJobs } from "../services/jobsService";
 import { fetchPanelists } from "../services/panelistsService";
 
 const splitAssignedJobs = (candidate) => {
@@ -19,6 +20,7 @@ export default function useDrivePage({ driveId }) {
   const [drive, setDrive] = useState(null);
   const [candidates, setCandidates] = useState([]);
   const [panelists, setPanelists] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,15 +28,17 @@ export default function useDrivePage({ driveId }) {
     const fetchDrivePageData = async () => {
       try {
         setLoading(true);
-        const [driveData, candidateData, panelistData] = await Promise.all([
+        const [driveData, candidateData, panelistData, jobData] = await Promise.all([
           fetchDriveById(driveId),
           fetchCandidates({ limit: 5000 }),
           fetchPanelists({ limit: 5000 }),
+          fetchJobs({ limit: 5000 }),
         ]);
 
         setDrive(driveData || null);
         setCandidates(candidateData || []);
         setPanelists(panelistData || []);
+        setJobs(jobData || []);
         setError(null);
       } catch (fetchError) {
         console.error("Error loading drive page:", fetchError);
@@ -75,25 +79,38 @@ export default function useDrivePage({ driveId }) {
         .filter(Boolean)
         .map((value) => String(value).toLowerCase());
 
-      const hasDirectDriveMatch = candidateKeys.some((key) => driveKeySet.has(key));
-      const hasCollegeMatch = safeLower(candidate.college) === safeLower(drive.CollegeName);
-
-      return hasDirectDriveMatch || hasCollegeMatch;
+      return candidateKeys.some((key) => driveKeySet.has(key));
     });
   }, [candidates, drive, driveId]);
 
   const jobRows = useMemo(() => {
     if (!drive) return [];
 
-    const driveJobs = Array.isArray(drive.JobsOpening) ? drive.JobsOpening : [];
+    const driveCode = String(drive.DriveID || "");
+    const driveJobsFromMap = (jobs || []).filter((job) => {
+      if (!driveCode) return false;
+      const driveMap = job.Drive && typeof job.Drive === "object" ? job.Drive : {};
+      return Object.prototype.hasOwnProperty.call(driveMap, driveCode);
+    });
 
-    return driveJobs.map((jobName) => {
+    const fallbackJobNames = Array.isArray(drive.JobsOpening) ? drive.JobsOpening : [];
+    const jobEntries = driveJobsFromMap.length
+      ? driveJobsFromMap.map((job) => ({ jobName: job.JobName, job }))
+      : fallbackJobNames.map((jobName) => ({ jobName, job: null }));
+
+    return jobEntries.map(({ jobName, job }) => {
       const lowerJob = safeLower(jobName);
-      const candidateCount = driveScopedCandidates.filter((candidate) =>
-        splitAssignedJobs(candidate).some(
+      const assignedCandidateIds = Array.isArray(job?.assignedCandidates)
+        ? job.assignedCandidates.map((id) => String(id))
+        : [];
+
+      const candidateCount = driveScopedCandidates.filter((candidate) => {
+        const inAssignedList = assignedCandidateIds.includes(String(candidate._id));
+        const inCandidateJobs = splitAssignedJobs(candidate).some(
           (candidateJob) => safeLower(candidateJob) === lowerJob,
-        ),
-      ).length;
+        );
+        return inAssignedList || inCandidateJobs;
+      }).length;
 
       const mappedPanelists = panelists
         .filter((panelist) => {
@@ -122,7 +139,7 @@ export default function useDrivePage({ driveId }) {
         panelists: mappedPanelists,
       };
     });
-  }, [drive, driveScopedCandidates, panelists]);
+  }, [drive, driveScopedCandidates, panelists, jobs]);
 
   return {
     drive,
