@@ -22,9 +22,8 @@ import {
 
 import StatsCard from "../../Components/common/StatsCard.jsx";
 import EmptyState from "../../Components/common/EmptyState.jsx";
-import AssessmentProgressCard from "../../Components/dashboard/AssessmentProgressCard.jsx";
 
-const API_BASE = "http://localhost:5000";
+// const API_BASE = "http://localhost:5000"; // add api baase here 
 
 const EMPTY_DRIVE_FORM = {
   DriveID: "",
@@ -65,7 +64,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
 
   const fetchJobs = async () => {
     try {
-      const jobsRes = await axios.get(`${API_BASE}/print-jobs`);
+      const jobsRes = await axios.get(`/print-jobs`);    // add api baase here 
       const jobsData = (jobsRes.data.data || []).map((doc) => ({
         ...doc,
         id: doc._id,
@@ -87,7 +86,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
   const fetchDrives = async () => {
     try {
       setDrivesLoading(true);
-      const drivesRes = await axios.get(`${API_BASE}/print-drives`);
+      const drivesRes = await axios.get(`/print-drives`); // add api baase here 
       const drivesData = (drivesRes.data.data || []).map((doc) => ({
         ...doc,
         id: doc._id,
@@ -157,7 +156,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/drive`, payload);
+      const response = await axios.post(`/drive`, payload); // add api baase here 
       if (response.data.success) {
         setNewDrive(EMPTY_DRIVE_FORM);
         await fetchDrives();
@@ -184,7 +183,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
       }
 
       try {
-        const response = await axios.delete(`${API_BASE}/drive/${driveId}`);
+        const response = await axios.delete(`/drive/${driveId}`); // add api baase here 
         if (response.data.success) {
           await fetchDrives();
           alert("Drive deleted successfully.");
@@ -291,36 +290,6 @@ export default function DriveManagement({ onDrivesUpdate }) {
     },
   ];
 
-  const assessmentProgress = [
-    {
-      title: "Group Discussion",
-      completed: 3,
-      total: 4,
-      pending: 1,
-      color: colors.rainShadow,
-    },
-    {
-      title: "Personal Interview",
-      completed: 2,
-      total: 4,
-      pending: 2,
-      color: colors.marigoldFlame,
-    },
-  ];
-
-  const totalAssessments = assessmentProgress.reduce(
-    (sum, assessment) => sum + assessment.total,
-    0,
-  );
-  const completedAssessments = assessmentProgress.reduce(
-    (sum, assessment) => sum + assessment.completed,
-    0,
-  );
-  const pendingAssessments = assessmentProgress.reduce(
-    (sum, assessment) => sum + assessment.pending,
-    0,
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -340,7 +309,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
             Drive Management
           </h1>
           <p className="text-gray-600">
-           Manage your Campus Drives  
+            Manage your Campus Drives
           </p>
         </div>
 
@@ -397,52 +366,6 @@ export default function DriveManagement({ onDrivesUpdate }) {
                 lightBg={stat.lightBg}
               />
             ))}
-          </div>
-        </section>
-
-        <section className="mb-8">
-          <div className="mb-6">
-            <h3
-              className="text-2xl font-bold mb-2"
-              style={{ color: colors.stonewash }}
-            >
-              GD & PI Results View
-            </h3>
-            <p className="text-gray-600">
-              Track interview progress and completion status by round
-            </p>
-          </div>
-
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-lg p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Completed</p>
-                <p className="text-2xl font-bold" style={{ color: colors.mossRock }}>
-                  {completedAssessments}
-                </p>
-              </div>
-              <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Pending</p>
-                <p className="text-2xl font-bold" style={{ color: colors.marigoldFlame }}>
-                  {pendingAssessments}
-                </p>
-              </div>
-              <div className="rounded-xl bg-gray-50 p-4 border border-gray-100">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Total</p>
-                <p className="text-2xl font-bold" style={{ color: colors.stonewash }}>
-                  {totalAssessments}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {assessmentProgress.map((assessment, index) => (
-                <AssessmentProgressCard
-                  key={index}
-                  assessment={assessment}
-                />
-              ))}
-            </div>
           </div>
         </section>
 

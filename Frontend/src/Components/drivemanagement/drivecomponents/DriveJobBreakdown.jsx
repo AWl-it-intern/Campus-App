@@ -1,6 +1,16 @@
 import { Briefcase, Users, UserCheck } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function DriveJobBreakdown({ jobRows, colors }) {
+  const navigate = useNavigate();
+const { driveId } = useParams();
+
+const handleJobClick = (job) => {
+  navigate(
+    `/HR/dashboard/drive/${driveId}/job/${job._id}/candidates`
+  );
+};
+
   return (
     <section className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-100">
@@ -36,7 +46,7 @@ export default function DriveJobBreakdown({ jobRows, colors }) {
               </tr>
             ) : (
               jobRows.map((job) => (
-                <tr key={job.jobName} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={job.jobName} className="border-b border-gray-100 hover:bg-gray-50" onClick={() => handleJobClick(job) } style={{ cursor: "pointer" }}>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 font-semibold text-gray-800">
                       <Briefcase size={16} style={{ color: colors.rainShadow }} />

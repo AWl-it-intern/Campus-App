@@ -16,7 +16,7 @@ import {
 // Import common components
 import EmptyState from "../../Components/common/EmptyState.jsx";
 
-const API_BASE = "http://localhost:5000";
+// const API_BASE = "http://localhost:5000"; 
 
 export default function CreateJob({
   onJobAssignment,
@@ -54,7 +54,7 @@ export default function CreateJob({
   const fetchJobs = async () => {
     try {
       setJobsLoading(true);
-      const jobsRes = await axios.get(`${API_BASE}/print-jobs`);
+      const jobsRes = await axios.get(`/print-jobs`);   //Add APibase here 
       const jobsData = (jobsRes.data.data || []).map((doc) => ({
         ...doc,
         id: doc._id,
@@ -205,7 +205,7 @@ export default function CreateJob({
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/job`, {
+      const response = await axios.post(`/job`, { // add Apibaase here 
         JobID: jobId,
         JobName: jobName,
         assignedCandidates: [],
@@ -238,7 +238,7 @@ export default function CreateJob({
       }
 
       try {
-        const response = await axios.delete(`${API_BASE}/job/${jobId}`);
+        const response = await axios.delete(`/job/${jobId}`); // add api baase here 
         if (response.data.success) {
           await fetchJobs();
           alert("Job deleted successfully!");

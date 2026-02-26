@@ -256,7 +256,7 @@ export default function CandidateDashboard() {
       style={{ fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}
     >
       <header className="border-b border-[#D6D6DC] bg-white">
-        <div className="mx-auto flex h-16 max-w-[1300px] items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-325 items-center justify-between px-4 sm:px-6">
           <img src={awlLogo} alt="AWL logo" className="h-10 w-auto" />
 
           <div className="flex items-center gap-1 sm:gap-2" ref={notificationsRef}>
@@ -268,13 +268,13 @@ export default function CandidateDashboard() {
                 aria-label="View notifications"
               >
                 <Bell size={19} />
-                <span className="absolute right-0.5 top-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[11px] font-semibold text-white">
+                <span className="absolute right-0.5 top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF3B3B] px-1 text-[11px] font-semibold text-white">
                   {unreadNotificationsCount}
                 </span>
               </button>
 
               {isNotificationsOpen && (
-                <div className="absolute right-0 z-50 mt-2 w-[310px] rounded-2xl border border-[#D6D6DC] bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)] sm:w-[360px]">
+                <div className="absolute right-0 z-50 mt-2 w-[310px] rounded-2xl border border-[#D6D6DC] bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)] sm:w-90">
                   <div className="mb-2 flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-[#001F3F]">Notifications</h4>
                     <button

@@ -96,7 +96,7 @@ export default function ApplicationForm() {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [formData, setFormData] = useState(createInitialFormData);
+const [formData, setFormData] = useState(createInitialFormData());
 
   useEffect(() => {
     let isMounted = true;
@@ -392,7 +392,7 @@ export default function ApplicationForm() {
   return (
     <div className="min-h-screen bg-[#F2F2F4]">
       <header className="border-b border-[#D6D6DC] bg-white">
-        <div className="mx-auto flex h-16 max-w-[1300px] items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-325 items-center gap-4 px-4 sm:px-6">
           <button
             type="button"
             onClick={() => navigate("/candidate-dashboard")}
@@ -406,7 +406,7 @@ export default function ApplicationForm() {
       </header>
 
       <main className="px-4 pb-10 pt-8 sm:px-6">
-        <div className="mx-auto max-w-[640px]">
+        <div className="mx-auto max-w-160">
           <h1 className="text-4xl font-bold tracking-tight text-[#001F3F]">Application Form</h1>
           <p className="mt-2 text-[28px] text-[#4A5565]">Complete your profile to proceed</p>
 
@@ -680,7 +680,8 @@ export default function ApplicationForm() {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   className="h-11 rounded-xl bg-[#0B8A8C] text-[16px] font-semibold text-white transition hover:bg-[#087578]"
                 >
                   Submit Application

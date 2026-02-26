@@ -3,19 +3,21 @@ import { Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 
-// Import feature-specific components
+// Feature-specific components
 import {
   UserFormCard,
   UsersTableHeader,
   UserTableRow,
 } from "../../Components/users/index.js";
 
-// Import common components
+// Reusable modal for assigning jobs
+import AssignJobModal from "../../Components/users/AssignJobModal.jsx"; // <-- adjust path if needed
+
+// Common
 import EmptyState from "../../Components/common/EmptyState.jsx";
 
-const API_BASE = "http://localhost:5000";
 
-export default function CreateUsers({ drives = [] }) {
+export default function CreateUsers({ drives: drivesProp = [] }) {
   const navigate = useNavigate();
   const location = useLocation();
   const fromDrives = location.state?.fromDrives || false;
@@ -31,22 +33,87 @@ export default function CreateUsers({ drives = [] }) {
     clayPot: "#E0B9AD",
   };
 
+  // ---------------------- Data state ----------------------
   const [candidates, setCandidates] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [drives, setDrives] = useState(drivesProp || []);
+
+  // ---------------------- UI state ------------------------
   const [importing, setImporting] = useState(false);
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
     college: "",
-    AssignedJob: "",
+    AssignedJobs: [], // <-- array from day one
   });
 
-  // Filter states
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [collegeFilter, setCollegeFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
 
-  /* ---------------- Insert Functions ---------------- */
+  // Assign Job modal state
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [assignCtx, setAssignCtx] = useState({
+    candidateId: null,
+    filterKeys: [], // from the candidate's drive JobsOpening
+    filterBy: "JobName", // "JobName" today; switch to "JobID" if you store JobIDs in Drives.JobsOpening
+  });
 
+  // ---------------------- Fetchers ------------------------
+  const fetchCandidates = async () => {
+    try {
+      const res = await axios.get(`/print-candidates?limit=5000`); // add api baase here 
+      const fetchedCandidates = (res.data.data || []).map((c) => {
+        // STRICT: only use AssignedJobs array; do not derive from AssignedJob
+        const AssignedJobs = Array.isArray(c.AssignedJobs)
+          ? c.AssignedJobs.filter(Boolean).map(String)
+          : [];
+        return { ...c, AssignedJobs };
+      });
+      setCandidates(fetchedCandidates);
+    } catch (err) {
+      console.error("Error fetching candidates:", err);
+    }
+  };
+
+  const fetchJobs = async () => {
+    try {
+      const jobsRes = await axios.get(`/print-jobs?limit=5000`); // add api baase here 
+      const jobsData = (jobsRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+      }));
+      setJobs(jobsData);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+      setJobs([]);
+    }
+  };
+
+  const fetchDrives = async () => {
+    try {
+      const drivesRes = await axios.get(`/print-drives?limit=5000`); // add api baase here 
+      const drivesData = (drivesRes.data.data || []).map((doc) => ({
+        ...doc,
+        id: doc._id,
+        JobsOpening: Array.isArray(doc.JobsOpening) ? doc.JobsOpening : [],
+      }));
+      setDrives(drivesData);
+    } catch (err) {
+      console.error("Error fetching drives:", err);
+      // keep whatever came from props as a fallback
+    }
+  };
+
+  // Fetch once on mount
+  useEffect(() => {
+    fetchCandidates();
+    fetchJobs();
+    fetchDrives();
+  }, []);
+
+  // ---------------------- Create / Delete -----------------
   const createCandidate = async () => {
     if (!newUser.name || !newUser.email || !newUser.college) {
       alert("Please fill in Name, Email, and College fields");
@@ -54,7 +121,15 @@ export default function CreateUsers({ drives = [] }) {
     }
 
     try {
-      await axios.post(`${API_BASE}/candidate`, newUser);
+      // Ensure AssignedJobs is an array in the payload
+      const payload = {
+        ...newUser,
+        AssignedJobs: Array.isArray(newUser.AssignedJobs)
+          ? newUser.AssignedJobs
+          : [],
+      };
+
+      await axios.post(`/candidate`, payload); // add api baase here 
       await fetchCandidates();
 
       alert("New Candidate Inserted Successfully!");
@@ -62,7 +137,7 @@ export default function CreateUsers({ drives = [] }) {
         name: "",
         email: "",
         college: "",
-        AssignedJob: "",
+        AssignedJobs: [], // reset to empty array
       });
     } catch (err) {
       console.error("Error creating candidate:", err);
@@ -70,15 +145,11 @@ export default function CreateUsers({ drives = [] }) {
     }
   };
 
-  // ---------------------------Delete func---------------
   const deleteCandidate = async (candidateId) => {
     try {
-      await axios.delete(`${API_BASE}/candidate/${candidateId}`);
+      await axios.delete(`/candidate/${candidateId}`); // add api baase here 
 
-      setCandidates((prev) =>
-        prev.filter((candidate) => candidate._id !== candidateId),
-      );
-
+      setCandidates((prev) => prev.filter((c) => c._id !== candidateId));
       alert("Candidate Deleted Successfully!");
     } catch (err) {
       console.error("Error deleting candidate:", err);
@@ -86,52 +157,78 @@ export default function CreateUsers({ drives = [] }) {
     }
   };
 
+  // ---------------------- Assign Job (Modal) --------------
+  // Open the modal with a filtered list based on the candidate's assigned drive
+  const onOpenAssign = (candidate) => {
+    const candidateDriveId = String(candidate.driveId || "");
+    const driveMap = drivesMap; // from useMemo below
+    const drive = driveMap[candidateDriveId];
 
-  /* ---------------- Fetch Functions ---------------- */
+    const filterKeys = Array.isArray(drive?.JobsOpening)
+      ? drive.JobsOpening
+      : [];
 
-  const fetchCandidates = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/print-candidates?limit=5000`);
-      const fetchedCandidates = res.data.data || [];
-      setCandidates(fetchedCandidates);
-    } catch (err) {
-      console.error("Error fetching candidates:", err);
-    }
+    setAssignCtx({
+      candidateId: candidate._id,
+      filterKeys,
+      filterBy: "JobName", // if later Drives.JobsOpening holds JobIDs, change to "JobID"
+    });
+
+    setIsAssignOpen(true);
   };
 
-  // Fetch once on mount
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
+  // After success from modal → optimistic update
+  const  handleAssigned = async ({ jobs, candidateId }) => {
+    // Convert selected job objects to strings to store in client state
+    const names = (jobs || [])
+      .map((j) => String(j?.[assignCtx.filterBy] ?? ""))
+      .filter(Boolean);
 
+    setCandidates((prev) =>
+      prev.map((c) =>
+        c._id === candidateId
+          ? {
+              ...c,
+              // Store an array in client state to match the row’s expectation
+              AssignedJobs: names,
+            }
+          : c,
+      ),
+    );
+    await fetchCandidates();
+  };
 
-  /* ---------------- Filter Logic ---------------- */
-
-  const uniqueColleges = useMemo(() => {
-    return [...new Set(candidates.map((c) => c.college).filter(Boolean))].sort();
-  }, [candidates]);
+  // ---------------------- Filters & helpers ----------------
+  const uniqueColleges = useMemo(
+    () =>
+      [...new Set(candidates.map((c) => c.college).filter(Boolean))].sort(),
+    [candidates],
+  );
 
   const uniqueJobs = useMemo(() => {
-    return [
-      ...new Set(candidates.map((c) => c.AssignedJob).filter(Boolean)),
-    ].sort();
+    const flat = candidates.flatMap((c) =>
+      Array.isArray(c.AssignedJobs) ? c.AssignedJobs : [],
+    );
+    return [...new Set(flat.filter(Boolean).map(String))].sort();
   }, [candidates]);
 
-  // Helper functions for drive and panelist
-  const getDriveName = (driveId) => {
-    const drive = drives.find(
-      (d) =>
-        d.driveId === driveId ||
-        d.DriveID === driveId ||
-        d.id === driveId ||
-        d._id === driveId,
+  // Fast lookup: driveId -> drive doc
+  const drivesMap = useMemo(() => {
+    return Object.fromEntries(
+      (drives || []).map((d) => [
+        String(d._id || d.id || d.DriveID || ""),
+        d,
+      ]),
     );
+  }, [drives]);
 
+  const getDriveName = (driveId) => {
+    const drive = drivesMap[String(driveId || "")];
     if (!drive) return null;
 
-    const driveCode = drive.DriveID || drive.driveId;
-    const collegeName = drive.CollegeName || drive.collegeName;
-    return `${driveCode} - ${collegeName}`;
+    const driveCode = drive.DriveID || drive.driveId || "";
+    const collegeName = drive.CollegeName || drive.collegeName || "";
+    return `${driveCode} - ${collegeName}`.trim();
   };
 
   const filteredCandidates = candidates.filter((candidate) => {
@@ -139,7 +236,6 @@ export default function CreateUsers({ drives = [] }) {
     const name = String(candidate.name || "").toLowerCase();
     const email = String(candidate.email || "").toLowerCase();
     const college = String(candidate.college || "").toLowerCase();
-    const assignedJob = String(candidate.AssignedJob || "");
 
     const matchesSearch =
       name.includes(searchLower) ||
@@ -149,12 +245,18 @@ export default function CreateUsers({ drives = [] }) {
     const matchesCollege =
       collegeFilter === "" || college === collegeFilter.toLowerCase();
 
+    // Array-based job filter (exact, case-insensitive match on any item)
+    const jobsArr = Array.isArray(candidate.AssignedJobs)
+      ? candidate.AssignedJobs.map((s) => String(s).toLowerCase())
+      : [];
+
     const matchesJob =
-      jobFilter === "" || assignedJob.toLowerCase() === jobFilter.toLowerCase();
+      jobFilter === "" || jobsArr.includes(jobFilter.toLowerCase());
 
     return matchesSearch && matchesCollege && matchesJob;
   });
 
+  // ---------------------- CSV import / export --------------
   const parseCsvLine = (line) => {
     const result = [];
     let current = "";
@@ -182,9 +284,33 @@ export default function CreateUsers({ drives = [] }) {
     return result;
   };
 
-  const readValue = (row, headers, keys) => {
-    const index = headers.findIndex((header) => keys.includes(header));
-    return index === -1 ? "" : String(row[index] || "").trim();
+  const readIndex = (headers, keys) =>
+    headers.findIndex((header) => keys.includes(header));
+
+  const readValue = (row, index) =>
+    index === -1 ? "" : String(row[index] || "").trim();
+
+  // Parse "AssignedJobs" (array). Supports JSON array or delimited string ("HR;Finance" or "HR,Finance").
+  const parseAssignedJobsCell = (raw) => {
+    if (!raw) return [];
+    const text = String(raw).trim();
+    // Try JSON array
+    if (text.startsWith("[") && text.endsWith("]")) {
+      try {
+        const arr = JSON.parse(text);
+        return Array.isArray(arr)
+          ? arr.filter(Boolean).map(String)
+          : [];
+      } catch {
+        // fallthrough to delimiter-based parsing
+      }
+    }
+    // Fallback: split by semicolon first, then comma
+    const delim = text.includes(";") ? ";" : ",";
+    return text
+      .split(delim)
+      .map((s) => s.trim())
+      .filter(Boolean);
   };
 
   const parseCsvCandidates = (text) => {
@@ -197,28 +323,30 @@ export default function CreateUsers({ drives = [] }) {
       throw new Error("CSV file must include a header and at least one row");
     }
 
-    const headers = parseCsvLine(lines[0]).map((h) =>
-      h.replace(/^\uFEFF/, "").trim().toLowerCase(),
-    );
+    const headers = parseCsvLine(lines[0])
+      .map((h) => h.replace(/^\uFEFF/, "").trim().toLowerCase());
+
+    const nameIdx = readIndex(headers, ["name", "full name", "candidate name"]);
+    const emailIdx = readIndex(headers, ["email", "email address", "mail"]);
+    const collegeIdx = readIndex(headers, ["college", "college name", "university"]);
+    const assignedJobsIdx = readIndex(headers, ["assignedjobs", "assigned jobs"]); // <-- new
+    const driveIdIdx = readIndex(headers, ["driveid", "drive id", "assigneddriveid", "assigned drive id"]);
 
     const candidatesPayload = lines.slice(1).map((line) => {
       const values = parseCsvLine(line);
+
+      const name = readValue(values, nameIdx);
+      const email = readValue(values, emailIdx);
+      const college = readValue(values, collegeIdx);
+      const driveId = readValue(values, driveIdIdx);
+      const assignedJobsRaw = readValue(values, assignedJobsIdx);
+
       return {
-        name: readValue(values, headers, ["name", "full name", "candidate name"]),
-        email: readValue(values, headers, ["email", "email address", "mail"]),
-        college: readValue(values, headers, ["college", "college name", "university"]),
-        AssignedJob: readValue(values, headers, [
-          "assignedjob",
-          "assigned job",
-          "job",
-          "job name",
-        ]),
-        driveId: readValue(values, headers, [
-          "driveid",
-          "drive id",
-          "assigneddriveid",
-          "assigned drive id",
-        ]),
+        name,
+        email,
+        college,
+        AssignedJobs: parseAssignedJobsCell(assignedJobsRaw), // always array
+        driveId,
       };
     });
 
@@ -240,7 +368,7 @@ export default function CreateUsers({ drives = [] }) {
       "Name",
       "Email",
       "College",
-      "AssignedJob",
+      "AssignedJobs", // array column
       "DriveID",
       "CreatedAt",
     ];
@@ -249,7 +377,10 @@ export default function CreateUsers({ drives = [] }) {
       candidate.name || "",
       candidate.email || "",
       candidate.college || "",
-      candidate.AssignedJob || "",
+      // serialize as JSON array for round-tripping
+      JSON.stringify(
+        Array.isArray(candidate.AssignedJobs) ? candidate.AssignedJobs : []
+      ),
       candidate.driveId || candidate.DriveID || "",
       candidate.createdAt
         ? new Date(candidate.createdAt).toLocaleString("en-IN")
@@ -288,14 +419,16 @@ export default function CreateUsers({ drives = [] }) {
         return;
       }
 
-      const response = await axios.post(`${API_BASE}/candidate/bulk`, {
+      const response = await axios.post(`/candidate/bulk`, {      // add api baase here 
         candidates: parsedCandidates,
       });
 
       if (response.data.success) {
         await fetchCandidates();
         alert(
-          `Imported ${response.data.insertedCount || parsedCandidates.length} candidate(s) successfully.`,
+          `Imported ${
+            response.data.insertedCount || parsedCandidates.length
+          } candidate(s) successfully.`,
         );
       } else {
         alert("Import failed: " + (response.data.error || "Unknown error"));
@@ -305,23 +438,18 @@ export default function CreateUsers({ drives = [] }) {
       alert(error?.response?.data?.error || "Failed to import candidates.");
     } finally {
       setImporting(false);
-      if (event.target) {
-        event.target.value = "";
-      }
+      if (event.target) event.target.value = "";
     }
   };
 
-  /* ---------------- Render ---------------- */
-
+  // ---------------------- Render --------------------------
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
           onClick={() =>
-            navigate(
-              fromDrives ? "/HR/dashboard/Drives" : "/HR/dashboard",
-            )
+            navigate(fromDrives ? "/HR/dashboard/Drives" : "/HR/dashboard")
           }
           className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
           style={{ backgroundColor: colors.stonewash }}
@@ -348,7 +476,7 @@ export default function CreateUsers({ drives = [] }) {
           onChange={onFileChange}
         />
 
-        {/* Create User Form - Using Component */}
+        {/* Create User Form */}
         <div className="relative">
           <UserFormCard
             newUser={newUser}
@@ -357,12 +485,13 @@ export default function CreateUsers({ drives = [] }) {
             onImportClick={onImportClick}
             importing={importing}
             colors={colors}
+            // (Removed job-related props; the form no longer shows Assign Jobs)
           />
         </div>
 
         {/* Candidates Overview Table */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden ">
-          {/* Table Header - Using Component */}
+          {/* Table Header */}
           <UsersTableHeader
             filteredCandidates={filteredCandidates.length}
             searchTerm={searchTerm}
@@ -421,11 +550,23 @@ export default function CreateUsers({ drives = [] }) {
                       getDriveName={getDriveName}
                       colors={colors}
                       deleteCandidate={deleteCandidate}
+                      onOpenAssign={onOpenAssign} // <-- open modal from row
                     />
                   ))
                 )}
               </tbody>
             </table>
+
+            {/* Assign Job Modal (global, controlled here) */}
+            <AssignJobModal
+              isOpen={isAssignOpen}
+              onClose={() => setIsAssignOpen(false)}
+              candidateId={assignCtx.candidateId}
+              allJobs={jobs}
+              filterKeys={assignCtx.filterKeys}
+              filterBy={assignCtx.filterBy}
+              onAssigned={handleAssigned}
+            />
           </div>
         </div>
       </div>

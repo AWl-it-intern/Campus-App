@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "../Pages/Common/LoginPage";
-import CandidateRegister from "../Pages/Candidate/CandidateRegister";
 import CandidateDashboard from "../Pages/Candidate/CandidateDashboard";
 import ApplicationForm from "../Pages/Candidate/Applicationform";
 import NotFound from "../Pages/Common/NotFound";
@@ -12,29 +11,23 @@ import DrivePage from "../Pages/HR/DrivePage";
 import CreateJob from "../Pages/HR/CreateJob";
 import CreateUsers from "../Pages/HR/CreateUsers";
 import CreatePanelist from "../Pages/HR/CreatePanelist";
+import DriveCandidatesPage from "../Pages/HR/DriveCandidatesPage";
 
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Navigate to="/login" />} />
-      <Route path="/login" element={<LoginPage/>} />
-      <Route path="/register" element={<CandidateRegister />} />
+      <Route path="/login" element={<LoginPage />} />
 
       {/* Candidate routes */}
-      <Route element={<ProtectedRoute storageKey="candidate_auth" redirectTo="/login" />}>
-        <Route
-          path="/candidate-dashboard"
-          element={
-              <CandidateDashboard />
-          }
-        />
-        <Route
-          path="/candidate/application"
-          element={
-              <ApplicationForm />
-          }
-        />
+      <Route
+        element={
+          <ProtectedRoute storageKey="candidate_auth" redirectTo="/login" />
+        }
+      >
+        <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
+        <Route path="/candidate/application" element={<ApplicationForm />} />
       </Route>
 
       {/* Panelist routes */}
@@ -52,6 +45,10 @@ export default function AppRoutes() {
         <Route path="/HR/dashboard/Drives" element={<DriveManagement />} />
         <Route path="/HR/dashboard/Drives/:driveId" element={<DrivePage />} />
         <Route path="/HR/dashboard/Create-Job" element={<CreateJob />} />
+        <Route
+          path="/HR/dashboard/drive/:driveId/job/:jobId/candidates"
+          element={<DriveCandidatesPage />}
+        />
       </Route>
 
       {/* 404 */}

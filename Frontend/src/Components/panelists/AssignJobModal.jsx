@@ -15,7 +15,7 @@ import { X, Briefcase, CheckCircle2 } from "lucide-react";
  * @param {function} saveAssignments - Save assignments function
  * @param {object} colors - Color palette object
  */
-export const AssignCandidatesModal = ({
+export const AssignJobModal = ({
   isOpen,
   onClose,
   selectedPanelist,
@@ -144,4 +144,4 @@ export const AssignCandidatesModal = ({
   );
 };
 
-export default AssignCandidatesModal;
+export default AssignJobModal;

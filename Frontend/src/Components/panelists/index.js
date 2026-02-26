@@ -4,5 +4,5 @@
 export { PanelistFormCard } from './PanelistFormCard';
 export { PanelistsTableHeader } from './PanelistsTableHeader';
 export { PanelistTableRow } from './PanelistTableRow';
-export { AssignCandidatesModal } from './AssignCandidatesModal';
+export { AssignJobModal } from './AssignJobModal';
 export { ScheduleRoundModal } from './ScheduleRoundModal';

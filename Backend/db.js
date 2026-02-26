@@ -92,14 +92,31 @@ export async function insertManyCandidates(candidatesData = []) {
 
 
 /* -------- Print Candidates -------- */
-export async function printCandidates(limit = 50, debug = false) {
+export async function printCandidates({ limit = 50, job, college, debug = false }) {
   if (!db) {
     throw new Error("DB not connected. Call connectDB() first.");
   }
 
   const numericLimit = Number(limit);
 
-  const cursor = db.collection("Candidate").find({}).sort({ createdAt: -1 });
+  // Build MongoDB filter object
+  const filter = {};
+
+  // Filter Candidates where AssignedJobs array contains job (case-insensitive)
+  if (job && job.trim()) {
+    filter.AssignedJobs = { $elemMatch: { $regex: `^${job.trim()}$`, $options: "i" } };
+  }
+
+  // Filter by college (case-insensitive)
+  if (college && college.trim()) {
+    filter.college = { $regex: `^${college.trim()}$`, $options: "i" };
+  }
+
+  const cursor = db
+    .collection("Candidate")
+    .find(filter)
+    .sort({ createdAt: -1 });
+
   if (Number.isFinite(numericLimit) && numericLimit > 0) {
     cursor.limit(numericLimit);
   }
@@ -107,7 +124,8 @@ export async function printCandidates(limit = 50, debug = false) {
   const candidates = await cursor.toArray();
 
   if (debug) {
-    console.log(`📄 Candidate collection | Count: ${candidates.length}`);
+    console.log(`📄 Filter:`, filter);
+    console.log(`📄 Candidate count: ${candidates.length}`);
   }
 
   return candidates;
@@ -308,6 +326,28 @@ export async function deleteCandidate(id) {
   const result = await db.collection('Candidate').deleteOne({ _id: new ObjectId(id) });
 
   console.log(' Candidate deleted:', result.deletedCount);
+
+  return result;
+}
+
+//------------------Edit Candidate-----------------
+
+export async function editcandidate(id, updateData) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const result = await db.collection("Candidate").updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $set: {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+    }
+  );
+
+  console.log("Candidate updated:", result.modifiedCount);
 
   return result;
 }

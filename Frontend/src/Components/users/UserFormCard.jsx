@@ -1,25 +1,38 @@
 // components/users/UserFormCard.jsx
-import { UserPlus, Upload } from 'lucide-react';
+import { UserPlus, Upload } from "lucide-react";
 
 /**
  * UserFormCard Component
  * Form for creating new candidates in the CreateUsers page
- * 
- * @param {object} newUser - User form state object
- * @param {function} setNewUser - State setter for user form
+ *
+ * @param {object}  newUser        - User form state object
+ * @param {function} setNewUser    - State setter for user form
  * @param {function} createCandidate - Function to create new candidate
  * @param {function} onImportClick - Handler to open import dialog
- * @param {boolean} importing - Import loading state
- * @param {object} colors - Color palette object
+ * @param {boolean} importing      - Import loading state
+ * @param {object}  colors         - Color palette object
  */
-export const UserFormCard = ({ 
-  newUser, 
-  setNewUser, 
-  createCandidate, 
+export const UserFormCard = ({
+  newUser,
+  setNewUser,
+  createCandidate,
   onImportClick,
   importing = false,
-  colors 
+  colors,
 }) => {
+  // Optional guard: ensure we always carry AssignedJobs in client state
+  const ensureAssignedJobsArray = () => {
+    if (!Array.isArray(newUser.AssignedJobs)) {
+      setNewUser({ ...newUser, AssignedJobs: [] });
+    }
+  };
+
+  const handleCreate = () => {
+    // Make sure AssignedJobs is an array before the parent create is triggered
+    ensureAssignedJobsArray();
+    createCandidate();
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
       <div className="flex items-center gap-3 mb-6">
@@ -37,7 +50,9 @@ export const UserFormCard = ({
         </div>
       </div>
 
+      {/* FORM FIELDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* NAME */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Full Name *
@@ -50,6 +65,7 @@ export const UserFormCard = ({
           />
         </div>
 
+        {/* EMAIL */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Email Address *
@@ -62,6 +78,7 @@ export const UserFormCard = ({
           />
         </div>
 
+        {/* COLLEGE */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             College/University *
@@ -73,25 +90,16 @@ export const UserFormCard = ({
             onChange={(e) => setNewUser({ ...newUser, college: e.target.value })}
           />
         </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Assigned Job (Optional)
-          </label>
-          <input
-            className="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:border-opacity-100 transition-all"
-            placeholder="Job title"
-            value={newUser.AssignedJob}
-            onChange={(e) => setNewUser({ ...newUser, AssignedJob: e.target.value })}
-          />
-        </div>
       </div>
 
+      {/* BUTTONS */}
       <div className="flex flex-wrap gap-3">
+        {/* CREATE */}
         <button
-          onClick={createCandidate}
+          onClick={handleCreate}
           className="w-full md:w-auto px-8 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
           style={{ backgroundColor: colors.mossRock }}
+          type="button"
         >
           <div className="flex items-center justify-center gap-2">
             <UserPlus size={20} />
@@ -99,11 +107,13 @@ export const UserFormCard = ({
           </div>
         </button>
 
+        {/* IMPORT */}
         <button
           onClick={onImportClick}
           disabled={importing}
-          className="w-full md:w-auto px-8  py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
-           style={{ backgroundColor: colors.mossRock, opacity: importing ? 0.6 : 1 }}
+          className="w-full md:w-auto px-8 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+          style={{ backgroundColor: colors.mossRock, opacity: importing ? 0.6 : 1 }}
+          type="button"
         >
           <div className="flex items-center justify-center gap-2">
             <Upload size={20} />
@@ -112,8 +122,9 @@ export const UserFormCard = ({
         </button>
       </div>
 
+      {/* Updated import hint: AssignedJobs (array) */}
       <p className="text-xs text-gray-500 mt-3">
-        Import CSV format: Name, Email, College, AssignedJob, DriveID
+        Import CSV format: Name, Email, College, <strong>AssignedJobs</strong> (array), DriveID
       </p>
     </div>
   );

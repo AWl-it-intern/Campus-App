@@ -1,28 +1,31 @@
 import dotenv from "dotenv";
 import app from "./src/app.js";
-import {
-  connectDB,
-  closeDB,
-} from "./db.js";
+import { connectDB, closeDB } from "./db.js";
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST; // optional
 
-/* -------- Start Server -------- */
 (async function startServer() {
   try {
     await connectDB();
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
-    });
+
+    if (HOST) {
+      app.listen(PORT, HOST, () => {
+        console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+      });
+    } else {
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+      });
+    }
   } catch (err) {
-    console.error(" Server failed to start");
+    console.error(" Server failed to start", err);
     process.exit(1);
   }
 })();
 
-/* -------- Graceful Shutdown -------- */
 process.on("SIGINT", async () => {
   await closeDB();
   process.exit(0);

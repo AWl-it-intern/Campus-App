@@ -9,7 +9,6 @@ import {
   DriveJobBreakdown,
 } from "../../Components/drivemanagement/drivecomponents";
 
-const API_BASE = "http://localhost:5000";
 
 const splitAssignedJobs = (value) =>
   String(value || "")
@@ -44,9 +43,9 @@ export default function DrivePage() {
       try {
         setLoading(true);
         const [driveRes, candidatesRes, panelistsRes] = await Promise.all([
-          axios.get(`${API_BASE}/drive/${driveId}`),
-          axios.get(`${API_BASE}/print-candidates?limit=5000`),
-          axios.get(`${API_BASE}/print-panelists?limit=5000`),
+          axios.get(`/drive/${driveId}`), // add api baase here 
+          axios.get(`/print-candidates?limit=5000`),// add api baase here 
+          axios.get(`/print-panelists?limit=5000`),// add api baase here 
         ]);
 
         setDrive(driveRes.data.data || null);

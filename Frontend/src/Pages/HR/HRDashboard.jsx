@@ -18,19 +18,19 @@ const HRDashboard = () => {
   const [panelistCount, setPanelistCount] = useState(0);
   const [totalDriveCount, setTotalDriveCount] = useState(0);
 
-  const API_BASE = "http://localhost:5000";
+  // const API_BASE = "http://localhost:5000"; 
 
   // Fetch on mount
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const candidateRes = await axios.get(`${API_BASE}/print-candidates`);
+        const candidateRes = await axios.get(`/print-candidates`); // add api baase here 
         setCandidateCount(candidateRes.data.count || 0);
 
-        const panelistRes = await axios.get(`${API_BASE}/print-panelists`);
+        const panelistRes = await axios.get(`/print-panelists`);// add api baase here 
         setPanelistCount(panelistRes.data.count || 0);
 
-        const drivesRes = await axios.get(`${API_BASE}/print-drives`);
+        const drivesRes = await axios.get(`/print-drives`);   // add api baase here 
         const totalDrives =
           typeof drivesRes.data.count === "number"
             ? drivesRes.data.count

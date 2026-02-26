@@ -3,6 +3,7 @@ import {
   insertManyCandidates,
   deleteCandidate,
   printCandidates,
+  editcandidate,
 } from "../../db.js";
 
 /* -------- Insert Candidate -------- */
@@ -10,7 +11,7 @@ export async function insertCandidateHandler(req, res) {
   try {
     const result = await insertCandidate(req.body);
 
-    // ðŸ‘‡ DEV ONLY: print after insert
+    // DEV ONLY: print after insert
     await printCandidates(5);
 
     res.status(201).json({
@@ -91,3 +92,38 @@ export async function printCandidatesHandler(req, res) {
     });
   }
 }
+
+
+/* -------- Edit Candidate -------- */ 
+export async function editcandidateHandler(req, res) {
+  try {
+    const candidateId = req.params.id;
+    const updateData = req.body;
+
+    if (!candidateId) {
+      return res.status(400).json({
+        success: false,
+        error: "Candidate ID is required",
+      });
+    }
+
+    const result = await editcandidate(candidateId, updateData);
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Candidate not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Candidate updated successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+}
+

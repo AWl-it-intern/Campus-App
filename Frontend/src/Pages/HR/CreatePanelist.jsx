@@ -7,14 +7,14 @@ import {
   PanelistFormCard,
   PanelistsTableHeader,
   PanelistTableRow,
-  AssignCandidatesModal,
+  AssignJobModal,
   ScheduleRoundModal,
 } from "../../Components/panelists/index.js";
 import EmptyState from "../../Components/common/EmptyState.jsx";
 
 export default function CreatePanelist({ onPanelistsUpdate }) {
   const navigate = useNavigate();
-  const API_BASE = "http://localhost:5000";
+  // const API_BASE = "http://localhost:5000"; 
 
   const colors = {
     stonewash: "#003329",
@@ -61,7 +61,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
   const fetchCandidates = async () => {
     try {
       setCandidatesLoading(true);
-      const candidatesRes = await axios.get(`${API_BASE}/print-candidates?limit=5000`);
+      const candidatesRes = await axios.get(`/print-candidates?limit=5000`); // add api baase here 
       const candidatesData = (candidatesRes.data.data || []).map((doc) => ({
         ...doc,
         id: doc._id,
@@ -79,7 +79,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
   const fetchJobs = async () => {
     try {
       setJobsLoading(true);
-      const jobsRes = await axios.get(`${API_BASE}/print-jobs?limit=5000`);
+      const jobsRes = await axios.get(`/print-jobs?limit=5000`); // add api baase here 
       const jobsData = (jobsRes.data.data || []).map((doc) => ({
         ...doc,
         id: doc._id,
@@ -97,7 +97,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
   const fetchPanelists = async () => {
     try {
       setPanelistsLoading(true);
-      const panelistsRes = await axios.get(`${API_BASE}/print-panelists?limit=5000`);
+      const panelistsRes = await axios.get(`/print-panelists?limit=5000`); // add api baase here 
       const panelistsData = (panelistsRes.data.data || []).map((doc) => ({
         ...doc,
         id: doc._id,
@@ -145,7 +145,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/panelist`, {
+      const response = await axios.post(`/panelist`, { // add api baase here 
         name: newPanelist.name,
         email: newPanelist.email,
         designation: newPanelist.designation,
@@ -168,7 +168,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
   const deletePanelist = async (panelistToDelete) => {
     if (window.confirm(`Are you sure you want to delete "${panelistToDelete.name}"?`)) {
       try {
-        const response = await axios.delete(`${API_BASE}/panelist/${panelistToDelete.id}`);
+        const response = await axios.delete(`/panelist/${panelistToDelete.id}`); // add api baase here 
 
         if (response.data.success) {
           await fetchPanelists();
@@ -185,7 +185,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
 
   const updatePanelist = async (panelistId, updateData) => {
     try {
-      const response = await axios.put(`${API_BASE}/panelist/${panelistId}`, updateData);
+      const response = await axios.put(`/panelist/${panelistId}`, updateData); // add api baase here 
 
       if (response.data.success) {
         await fetchPanelists();
@@ -420,7 +420,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
         </div>
       </div>
 
-      <AssignCandidatesModal
+      <AssignJobModal
         isOpen={showAssignModal}
         onClose={() => setShowAssignModal(false)}
         selectedPanelist={selectedPanelist}
