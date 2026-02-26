@@ -1,29 +1,30 @@
-// components/jobs/JobTableRow.jsx
-import { Briefcase, Trash2 } from 'lucide-react';
+import { Briefcase, Trash2, Users } from "lucide-react";
 
-/**
- * JobTableRow Component
- * Single row in the jobs table
- * 
- * @param {object} job - Job data object
- * @param {function} deleteJob - Delete job function
- * @param {object} colors - Color palette object
- */
-export const JobTableRow = ({ 
-  job, 
+export const JobTableRow = ({
+  job,
   deleteJob,
-  colors 
+  colors,
+  recentCandidates = [],
+  onRowClick,
 }) => {
   const assignedCandidates = job.assignedCandidates || [];
 
+  const handleDelete = (event) => {
+    event.stopPropagation();
+    deleteJob(job);
+  };
+
   return (
-    <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+    <tr
+      className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+      onClick={() => onRowClick?.(job)}
+    >
       <td className="px-6 py-4">
-        <span 
+        <span
           className="px-3 py-1 rounded-lg text-sm font-semibold"
-          style={{ 
-            backgroundColor: colors.rainShadow + '20',
-            color: colors.rainShadow
+          style={{
+            backgroundColor: colors.rainShadow + "20",
+            color: colors.rainShadow,
           }}
         >
           {job.JobID}
@@ -36,20 +37,40 @@ export const JobTableRow = ({
         </div>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2 text-sm text-gray-700">
-          {assignedCandidates.length === 0 ? (
-            <span className="text-gray-400 text-sm italic">No candidates assigned</span>
-          ) : (
-            <span>
-              {assignedCandidates.length} candidate{assignedCandidates.length !== 1 ? 's' : ''} assigned
-            </span>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <Users size={16} className="text-gray-400" />
+            {assignedCandidates.length === 0 ? (
+              <span className="text-gray-400 text-sm italic">No candidates assigned</span>
+            ) : (
+              <span>
+                {assignedCandidates.length} candidate{assignedCandidates.length !== 1 ? "s" : ""} assigned
+              </span>
+            )}
+          </div>
+          {recentCandidates.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {recentCandidates.map((candidate) => (
+                <span
+                  key={candidate._id}
+                  className="px-2 py-1 rounded-lg text-xs font-medium border"
+                  style={{
+                    backgroundColor: colors.softFlow + "20",
+                    borderColor: colors.softFlow,
+                    color: colors.stonewash,
+                  }}
+                >
+                  {candidate.name || candidate.email || "Candidate"}
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => deleteJob(job)}
+            onClick={handleDelete}
             className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-all"
             title="Delete Job"
           >

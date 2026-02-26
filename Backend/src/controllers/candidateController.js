@@ -1,18 +1,18 @@
 import {
-  insertCandidate,
-  insertManyCandidates,
-  deleteCandidate,
-  printCandidates,
-  editcandidate,
-} from "../../db.js";
+  createCandidate,
+  createManyCandidates,
+  removeCandidate,
+  listCandidates,
+  updateCandidate,
+} from "../services/candidateService.js";
 
 /* -------- Insert Candidate -------- */
 export async function insertCandidateHandler(req, res) {
   try {
-    const result = await insertCandidate(req.body);
+    const result = await createCandidate(req.body);
 
     // DEV ONLY: print after insert
-    await printCandidates(5);
+    await listCandidates({ limit: 5, debug: true });
 
     res.status(201).json({
       success: true,
@@ -37,7 +37,7 @@ export async function insertManyCandidatesHandler(req, res) {
       });
     }
 
-    const result = await insertManyCandidates(payload);
+    const result = await createManyCandidates(payload);
     res.status(201).json({
       success: true,
       insertedCount: result.insertedCount || 0,
@@ -54,7 +54,7 @@ export async function insertManyCandidatesHandler(req, res) {
 /* -------- Delete Candidate -------- */
 export async function deleteCandidateHandler(req, res) {
   try {
-    const result = await deleteCandidate(req.params.id);
+    const result = await removeCandidate(req.params.id);
     if (result.deletedCount === 0) {
       return res.status(404).json({
         success: false,
@@ -78,7 +78,7 @@ export async function printCandidatesHandler(req, res) {
   try {
     const limit =
       req.query.limit !== undefined ? Number(req.query.limit) : 0;
-    const data = await printCandidates(limit, true);
+    const data = await listCandidates({ limit, debug: true });
 
     res.json({
       success: true,
@@ -107,7 +107,7 @@ export async function editcandidateHandler(req, res) {
       });
     }
 
-    const result = await editcandidate(candidateId, updateData);
+    const result = await updateCandidate(candidateId, updateData);
     if (result.matchedCount === 0) {
       return res.status(404).json({
         success: false,
@@ -126,4 +126,3 @@ export async function editcandidateHandler(req, res) {
     });
   }
 }
-

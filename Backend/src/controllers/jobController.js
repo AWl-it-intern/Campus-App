@@ -1,16 +1,12 @@
-import {
-  insertJob,
-  deleteJob,
-  printJobs,
-} from "../../db.js";
+import { createJob, listJobs, removeJob } from "../services/jobService.js";
 
 /* -------- Insert Job -------- */
 export async function insertJobHandler(req, res) {
   try {
-    const result = await insertJob(req.body);
+    const result = await createJob(req.body);
 
-    // ðŸ‘‡ DEV ONLY: print after insert
-    await printJobs(5);
+    // DEV ONLY: print after insert
+    await listJobs({ limit: 5, debug: true });
 
     res.status(201).json({
       success: true,
@@ -27,7 +23,7 @@ export async function insertJobHandler(req, res) {
 /* -------- Delete Job -------- */
 export async function deleteJobHandler(req, res) {
   try {
-    const result = await deleteJob(req.params.id);
+    const result = await removeJob(req.params.id);
     if (result.deletedCount === 0) {
       return res.status(404).json({
         success: false,
@@ -50,9 +46,8 @@ export async function deleteJobHandler(req, res) {
 /* -------- Print Jobs API -------- */
 export async function printJobsHandler(req, res) {
   try {
-    const limit =
-      req.query.limit !== undefined ? Number(req.query.limit) : 0;
-    const data = await printJobs(limit, true);
+    const limit = req.query.limit !== undefined ? Number(req.query.limit) : 0;
+    const data = await listJobs({ limit, debug: true });
 
     res.json({
       success: true,

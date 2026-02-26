@@ -1,14 +1,14 @@
 import {
-  insertPanelist,
-  deletePanelist,
-  updatePanelist,
-  printPanelists,
-} from "../../db.js";
+  createPanelist,
+  listPanelists,
+  removePanelist,
+  updatePanelistRecord,
+} from "../services/panelistService.js";
 
 /* ---------Insert Panelist --------- */
 export async function insertPanelistHandler(req, res) {
   try {
-    const result = await insertPanelist(req.body);
+    const result = await createPanelist(req.body);
     res.status(201).json({
       success: true,
       id: result.insertedId,
@@ -24,7 +24,7 @@ export async function insertPanelistHandler(req, res) {
 /* -------- Delete Panelist --------- */
 export async function deletePanelistHandler(req, res) {
   try {
-    const result = await deletePanelist(req.params.id);
+    const result = await removePanelist(req.params.id);
     if (result.deletedCount === 0) {
       return res.status(404).json({
         success: false,
@@ -46,7 +46,7 @@ export async function deletePanelistHandler(req, res) {
 /* -------- Update Panelist --------- */
 export async function updatePanelistHandler(req, res) {
   try {
-    const result = await updatePanelist(req.params.id, req.body);
+    const result = await updatePanelistRecord(req.params.id, req.body);
     if (result.modifiedCount === 0) {
       return res.status(404).json({
         success: false,
@@ -68,9 +68,8 @@ export async function updatePanelistHandler(req, res) {
 /* -------- Print Panelists API -------- */
 export async function printPanelistsHandler(req, res) {
   try {
-    const limit =
-      req.query.limit !== undefined ? Number(req.query.limit) : 0;
-    const data = await printPanelists(limit);
+    const limit = req.query.limit !== undefined ? Number(req.query.limit) : 0;
+    const data = await listPanelists({ limit });
 
     res.json({
       success: true,

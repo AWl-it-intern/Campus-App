@@ -1,12 +1,10 @@
-import axios from "axios";
-
-export const API_BASE = "http://localhost:5000";
+import apiClient from "../services/apiClient";
 export const CANDIDATE_APPLICATION_KEY = "candidate_application";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 
 export async function fetchLoggedInCandidate() {
-  const response = await axios.get(`${API_BASE}/print-candidates?limit=5000`);
+  const response = await apiClient.get("/print-candidates?limit=5000");
   const candidates = Array.isArray(response.data?.data) ? response.data.data : [];
 
   if (candidates.length === 0) return null;
@@ -32,4 +30,3 @@ export function readSavedCandidateApplication() {
 export function saveCandidateApplication(payload) {
   localStorage.setItem(CANDIDATE_APPLICATION_KEY, JSON.stringify(payload));
 }
-

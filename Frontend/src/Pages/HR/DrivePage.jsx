@@ -1,145 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 
 import {
   DriveOverviewCard,
   DriveKpiStrip,
   DriveJobBreakdown,
 } from "../../Components/drivemanagement/drivecomponents";
-
-
-const splitAssignedJobs = (value) =>
-  String(value || "")
-    .split(",")
-    .map((job) => job.trim())
-    .filter(Boolean);
-
-const safeLower = (value) => String(value || "").toLowerCase();
+import HR_COLORS from "../../theme/hrPalette";
+import useDrivePage from "../../hooks/useDrivePage";
 
 export default function DrivePage() {
   const navigate = useNavigate();
   const { driveId } = useParams();
 
-  const colors = {
-    stonewash: "#003329",
-    softFlow: "#6AE8D3",
-    mossRock: "#66D095",
-    goldenHour: "#DEBF6C",
-    marigoldFlame: "#FFAD53",
-    clayPot: "#E0B9AD",
-    rainShadow: "#00988D",
-  };
+  const colors = HR_COLORS;
 
-  const [drive, setDrive] = useState(null);
-  const [candidates, setCandidates] = useState([]);
-  const [panelists, setPanelists] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchDrivePageData = async () => {
-      try {
-        setLoading(true);
-        const [driveRes, candidatesRes, panelistsRes] = await Promise.all([
-          axios.get(`/drive/${driveId}`), // add api baase here 
-          axios.get(`/print-candidates?limit=5000`),// add api baase here 
-          axios.get(`/print-panelists?limit=5000`),// add api baase here 
-        ]);
-
-        setDrive(driveRes.data.data || null);
-        setCandidates(candidatesRes.data.data || []);
-        setPanelists(panelistsRes.data.data || []);
-        setError(null);
-      } catch (fetchError) {
-        console.error("Error loading drive page:", fetchError);
-        setError(
-          fetchError?.response?.data?.error ||
-            "Unable to load drive details. Please try again.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDrivePageData();
-  }, [driveId]);
-
-  const driveScopedCandidates = useMemo(() => {
-    if (!drive) return [];
-
-    const driveKeySet = new Set(
-      [
-        driveId,
-        drive._id,
-        drive.id,
-        drive.DriveID,
-        String(drive.DriveID || "").toLowerCase(),
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase()),
-    );
-
-    return candidates.filter((candidate) => {
-      const candidateKeys = [
-        candidate.driveId,
-        candidate.DriveID,
-        candidate.assignedDriveId,
-        candidate.AssignedDriveId,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
-
-      const hasDirectDriveMatch = candidateKeys.some((key) => driveKeySet.has(key));
-      const hasCollegeMatch =
-        safeLower(candidate.college) === safeLower(drive.CollegeName);
-
-      return hasDirectDriveMatch || hasCollegeMatch;
-    });
-  }, [candidates, drive, driveId]);
-
-  const jobRows = useMemo(() => {
-    if (!drive) return [];
-
-    const driveJobs = Array.isArray(drive.JobsOpening) ? drive.JobsOpening : [];
-
-    return driveJobs.map((jobName) => {
-      const lowerJob = safeLower(jobName);
-      const candidateCount = driveScopedCandidates.filter((candidate) =>
-        splitAssignedJobs(candidate.AssignedJob).some(
-          (candidateJob) => safeLower(candidateJob) === lowerJob,
-        ),
-      ).length;
-
-      const mappedPanelists = panelists
-        .filter((panelist) => {
-          const expertise = safeLower(panelist.expertise);
-          const designation = safeLower(panelist.designation);
-          const assignedJobs = Array.isArray(panelist.assignedJobs)
-            ? panelist.assignedJobs.map((item) => safeLower(item))
-            : [];
-
-          return (
-            assignedJobs.includes(lowerJob) ||
-            expertise.includes(lowerJob) ||
-            designation.includes(lowerJob)
-          );
-        })
-        .map((panelist) => ({
-          id: panelist._id || panelist.id || panelist.email || panelist.name,
-          name: panelist.name || "Unnamed Panelist",
-          designation: panelist.designation || "",
-          expertise: panelist.expertise || "",
-        }));
-
-      return {
-        jobName,
-        candidateCount,
-        panelists: mappedPanelists,
-      };
-    });
-  }, [drive, driveScopedCandidates, panelists]);
+  const { drive, jobRows, loading, error } = useDrivePage({ driveId });
 
   if (loading) {
     return (

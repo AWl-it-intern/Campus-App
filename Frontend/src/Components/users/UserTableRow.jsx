@@ -1,5 +1,4 @@
-// components/users/UserTableRow.jsx
-import { Building2, Mail, Briefcase, MapPin } from "lucide-react";
+import { Building2, Mail, Briefcase, MapPin, Pencil } from "lucide-react";
 
 export const UserTableRow = ({
   candidate,
@@ -8,24 +7,28 @@ export const UserTableRow = ({
   deleteCandidate,
   assignJob,
   onOpenAssign,
+  onEdit,
 }) => {
-  // STRICT: No fallback to AssignedJob string. Use only AssignedJobs array.
   const jobList = Array.isArray(candidate.AssignedJobs)
     ? candidate.AssignedJobs.filter(Boolean).map(String)
-    : []; // if not array, treat as none assigned
+    : [];
 
   const hasMultipleJobs = jobList.length > 1;
   const driveName = getDriveName ? getDriveName(candidate.driveId) : null;
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+      <td className="px-6 py-4 text-sm text-gray-700 font-mono">
+        {candidate.CandidateID || "-"}
+      </td>
+
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white shrink-0"
             style={{ backgroundColor: colors.softFlow }}
           >
-            {candidate.name
+            {String(candidate.name || "")
               .split(" ")
               .map((n) => n?.[0] || "")
               .join("")
@@ -102,7 +105,15 @@ export const UserTableRow = ({
         >
           Assign Job
         </button>
-
+        <button
+          onClick={() => onEdit?.(candidate)}
+          className="px-3 py-1 rounded-lg text-sm text-white transition cursor-pointer"
+          style={{ backgroundColor: colors.rainShadow }}
+        >
+          <span className="inline-flex items-center gap-1">
+            <Pencil size={14} /> Edit
+          </span>
+        </button>
         <button
           onClick={() => deleteCandidate(candidate._id)}
           className="px-3 py-1 bg-red-400 text-white rounded-lg text-sm hover:bg-red-600 transition-colors cursor-pointer"

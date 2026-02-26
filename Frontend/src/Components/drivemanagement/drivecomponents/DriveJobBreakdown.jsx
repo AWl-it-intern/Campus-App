@@ -6,9 +6,10 @@ export default function DriveJobBreakdown({ jobRows, colors }) {
 const { driveId } = useParams();
 
 const handleJobClick = (job) => {
-  navigate(
-    `/HR/dashboard/drive/${driveId}/job/${job._id}/candidates`
-  );
+  const jobKey = encodeURIComponent(job.jobName || "");
+  navigate(`/HR/dashboard/drive/${driveId}/job/${jobKey}/candidates`, {
+    state: { JobName: job.jobName },
+  });
 };
 
   return (

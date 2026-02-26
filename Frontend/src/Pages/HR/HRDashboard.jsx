@@ -1,66 +1,30 @@
-// pages/HRDashboard.jsx
-// Updated with React Router navigation
-
-import { useState, useEffect } from "react";
 import { Users, UsersRound, LogOut, BriefcaseBusinessIcon, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
-// Import reusable components
 import StatsCard from "../../Components/common/StatsCard";
 import QuickActionCard from "../../Components/dashboard/QuickActionCard";
+import HR_COLORS from "../../theme/hrPalette";
+import useHrDashboard from "../../hooks/useHrDashboard";
 
 const HRDashboard = () => {
   const navigate = useNavigate();
 
-  // State for managing candidates, panelists, and drives
-  const [candidateCount, setCandidateCount] = useState(0);
-  const [panelistCount, setPanelistCount] = useState(0);
-  const [totalDriveCount, setTotalDriveCount] = useState(0);
+  const { candidateCount, panelistCount, totalDriveCount } = useHrDashboard();
 
-  // const API_BASE = "http://localhost:5000"; 
-
-  // Fetch on mount
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const candidateRes = await axios.get(`/print-candidates`); // add api baase here 
-        setCandidateCount(candidateRes.data.count || 0);
-
-        const panelistRes = await axios.get(`/print-panelists`);// add api baase here 
-        setPanelistCount(panelistRes.data.count || 0);
-
-        const drivesRes = await axios.get(`/print-drives`);   // add api baase here 
-        const totalDrives =
-          typeof drivesRes.data.count === "number"
-            ? drivesRes.data.count
-            : (drivesRes.data.data || []).length;
-        setTotalDriveCount(totalDrives);
-      } catch (err) {
-        console.error("Error fetching dashboard stats:", err);
-      }
-    };
-
-    fetchDashboardStats();
-  }, []);
-
-
-  // Color palette
   const colors = {
     primary: {
-      stonewash: "#003329",
-      softFlow: "#6AE8D3",
-      mossRock: "#66D095",
-      rainShadow: "#00988D",
+      stonewash: HR_COLORS.stonewash,
+      softFlow: HR_COLORS.softFlow,
+      mossRock: HR_COLORS.mossRock,
+      rainShadow: HR_COLORS.rainShadow,
     },
     secondary: {
-      goldenHour: "#DEBF6C",
-      marigoldFlame: "#FFAD53",
-      clayPot: "#E0B9AD",
+      goldenHour: HR_COLORS.goldenHour,
+      marigoldFlame: HR_COLORS.marigoldFlame,
+      clayPot: HR_COLORS.clayPot,
     },
   };
 
-  // Stats data - now using real data including panelists
   const statsData = [
     {
       title: "Total Applications",
@@ -85,7 +49,6 @@ const HRDashboard = () => {
     },
   ];
 
-  // Quick actions data - updated with dynamic counts and navigation
   const quickActions = [
     {
       title: "Drive Management",
@@ -118,7 +81,6 @@ const HRDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
       <nav
         className="shadow-md sticky top-0 z-40"
         style={{ backgroundColor: colors.primary.stonewash }}
@@ -133,9 +95,7 @@ const HRDashboard = () => {
                 <Users size={28} color={colors.primary.stonewash} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">
-                  AWL Recruit
-                </h1>
+                <h1 className="text-2xl font-bold text-white">AWL Recruit</h1>
                 <p className="text-sm text-white opacity-80">HR Dashboard</p>
               </div>
             </div>
@@ -151,10 +111,8 @@ const HRDashboard = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div>
-          {/* Welcome Section */}
           <section className="mb-8">
             <h2
               className="text-3xl font-bold mb-2"
@@ -167,7 +125,6 @@ const HRDashboard = () => {
             </p>
           </section>
 
-          {/* Stats Cards */}
           <section className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {statsData.map((stat, index) => (
@@ -183,7 +140,6 @@ const HRDashboard = () => {
             </div>
           </section>
 
-          {/* Quick Actions */}
           <section className="mb-8">
             <div className="mb-6">
               <h3
@@ -211,9 +167,8 @@ const HRDashboard = () => {
             </div>
           </section>
 
-          {/* Footer */}
           <footer className="text-center text-gray-600 text-sm py-4">
-            © 2026 Campus Recruit. All rights reserved.
+            Copyright 2026 Campus Recruit. All rights reserved.
           </footer>
         </div>
       </main>

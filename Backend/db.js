@@ -16,6 +16,68 @@ const client = new MongoClient(uri, {
 
 let db;
 
+async function getMaxCandidateSequence() {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const cursor = db.collection("Candidate").find(
+    { CandidateID: { $regex: /^CND\d+$/i } },
+    { projection: { CandidateID: 1 } },
+  );
+
+  let maxSequence = 0;
+
+  for await (const doc of cursor) {
+    const value = doc.CandidateID || "";
+    const match = String(value).match(/(\d+)/);
+    if (match) {
+      const parsed = Number(match[1]);
+      if (Number.isFinite(parsed)) {
+        maxSequence = Math.max(maxSequence, parsed);
+      }
+    }
+  }
+
+  return maxSequence;
+}
+
+async function getNextSequence(sequenceName, count = 1) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const counters = db.collection("counters");
+  const existing = await counters.findOne({ _id: sequenceName });
+  let seed = existing?.seq || 0;
+
+  if (sequenceName === "candidateId") {
+    const maxCandidate = await getMaxCandidateSequence();
+    if (maxCandidate > seed) {
+      seed = maxCandidate;
+    }
+  }
+
+  if (!existing) {
+    await counters.insertOne({ _id: sequenceName, seq: seed });
+  } else if (seed !== existing.seq) {
+    await counters.updateOne({ _id: sequenceName }, { $set: { seq: seed } });
+  }
+
+  const result = await counters.findOneAndUpdate(
+    { _id: sequenceName },
+    { $inc: { seq: count } },
+    { returnDocument: "before" },
+  );
+
+  const current = result?.value?.seq || 0;
+  return { start: current + 1, end: current + count };
+}
+
+function formatCandidateId(sequenceNumber) {
+  return `CND${String(sequenceNumber).padStart(3, "0")}`;
+}
+
 /* -------- Connect -------- */
 export async function connectDB() {
   if (db) return db;
@@ -40,8 +102,11 @@ export async function insertCandidate(candidateData) {
   }
 
   try {
+    const { start } = await getNextSequence("candidateId", 1);
+    const candidateId = formatCandidateId(start);
     const result = await db.collection("Candidate").insertOne({
       ...candidateData,
+      CandidateID: candidateId,
       createdAt: new Date(),
     });
 
@@ -67,6 +132,8 @@ export async function insertManyCandidates(candidatesData = []) {
     throw new Error("Candidates array is required");
   }
 
+  const { start } = await getNextSequence("candidateId", candidatesData.length);
+
   const preparedCandidates = candidatesData.map((candidate, index) => {
     if (!candidate?.email) {
       throw new Error(`Email is required for candidate at row ${index + 1}`);
@@ -74,6 +141,7 @@ export async function insertManyCandidates(candidatesData = []) {
 
     return {
       ...candidate,
+      CandidateID: formatCandidateId(start + index),
       email: String(candidate.email).trim(),
       name: String(candidate.name || "").trim(),
       college: String(candidate.college || "").trim(),
@@ -337,15 +405,78 @@ export async function editcandidate(id, updateData) {
     throw new Error("DB not connected. Call connectDB() first.");
   }
 
+  const candidateId = new ObjectId(id);
+  const existingCandidate = await db.collection("Candidate").findOne({
+    _id: candidateId,
+  });
+
+  if (!existingCandidate) {
+    return { matchedCount: 0, modifiedCount: 0 };
+  }
+
+  const payload = { ...updateData };
+  const hasAssignedJobs = Object.prototype.hasOwnProperty.call(payload, "AssignedJobs");
+  let updatedAssignedJobs = null;
+
+  if (hasAssignedJobs) {
+    const incomingJobs = Array.isArray(payload.AssignedJobs)
+      ? payload.AssignedJobs.filter(Boolean).map(String)
+      : [];
+    const previousJobs = Array.isArray(existingCandidate.AssignedJobs)
+      ? existingCandidate.AssignedJobs.filter(Boolean).map(String)
+      : [];
+
+    const replaceAssignedJobs =
+      payload.replaceAssignedJobs === true || payload.clearAssignedJobs === true;
+
+    if (replaceAssignedJobs) {
+      updatedAssignedJobs = incomingJobs;
+    } else {
+      const merged = new Set([...previousJobs, ...incomingJobs]);
+      updatedAssignedJobs = Array.from(merged);
+    }
+
+    payload.AssignedJobs = updatedAssignedJobs;
+    delete payload.replaceAssignedJobs;
+    delete payload.clearAssignedJobs;
+  }
+
   const result = await db.collection("Candidate").updateOne(
-    { _id: new ObjectId(id) },
+    { _id: candidateId },
     {
       $set: {
-        ...updateData,
+        ...payload,
         updatedAt: new Date(),
       },
     }
   );
+
+  if (hasAssignedJobs) {
+    const previousJobs = Array.isArray(existingCandidate.AssignedJobs)
+      ? existingCandidate.AssignedJobs.filter(Boolean).map(String)
+      : [];
+    const previousSet = new Set(previousJobs);
+    const nextJobs = Array.isArray(updatedAssignedJobs) ? updatedAssignedJobs : [];
+    const nextSet = new Set(nextJobs);
+    const candidateKey = String(candidateId);
+
+    const jobsToAdd = nextJobs.filter((job) => !previousSet.has(job));
+    const jobsToRemove = previousJobs.filter((job) => !nextSet.has(job));
+
+    if (jobsToAdd.length > 0) {
+      await db.collection("Jobs").updateMany(
+        { JobName: { $in: jobsToAdd } },
+        { $addToSet: { assignedCandidates: candidateKey } }
+      );
+    }
+
+    if (jobsToRemove.length > 0) {
+      await db.collection("Jobs").updateMany(
+        { JobName: { $in: jobsToRemove } },
+        { $pull: { assignedCandidates: candidateKey } }
+      );
+    }
+  }
 
   console.log("Candidate updated:", result.modifiedCount);
 

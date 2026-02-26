@@ -1,14 +1,14 @@
 import {
-  insertDrive,
-  getDriveById,
-  deleteDrive,
-  printDrives,
-} from "../../db.js";
+  createDrive,
+  getDrive,
+  listDrives,
+  removeDrive,
+} from "../services/driveService.js";
 
 /* -------- Insert Drive -------- */
 export async function insertDriveHandler(req, res) {
   try {
-    const result = await insertDrive(req.body);
+    const result = await createDrive(req.body);
 
     res.status(201).json({
       success: true,
@@ -25,7 +25,7 @@ export async function insertDriveHandler(req, res) {
 /* -------- Get Drive By Id -------- */
 export async function getDriveByIdHandler(req, res) {
   try {
-    const drive = await getDriveById(req.params.id);
+    const drive = await getDrive(req.params.id);
     if (!drive) {
       return res.status(404).json({
         success: false,
@@ -48,7 +48,7 @@ export async function getDriveByIdHandler(req, res) {
 /* -------- Delete Drive -------- */
 export async function deleteDriveHandler(req, res) {
   try {
-    const result = await deleteDrive(req.params.id);
+    const result = await removeDrive(req.params.id);
     if (result.deletedCount === 0) {
       return res.status(404).json({
         success: false,
@@ -71,9 +71,8 @@ export async function deleteDriveHandler(req, res) {
 /* -------- Print Drives API -------- */
 export async function printDrivesHandler(req, res) {
   try {
-    const limit =
-      req.query.limit !== undefined ? Number(req.query.limit) : 0;
-    const data = await printDrives(limit, true);
+    const limit = req.query.limit !== undefined ? Number(req.query.limit) : 0;
+    const data = await listDrives({ limit, debug: true });
 
     res.json({
       success: true,
