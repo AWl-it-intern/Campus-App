@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { createDrive, deleteDrive, fetchDrives } from "../services/drivesService";
+import {
+  createDrive,
+  deleteDrive,
+  fetchDriveById,
+  fetchDrives,
+  updateDrive,
+} from "../services/drivesService";
 import { fetchJobs } from "../services/jobsService";
-import { updateDrive } from "../services/drivesService";
 
 const EMPTY_DRIVE_FORM = {
   DriveID: "",
@@ -10,7 +15,101 @@ const EMPTY_DRIVE_FORM = {
   EndDate: "",
   JobsOpening: [],
   Status: "Draft",
-  NumberOfCandidates: "",
+};
+
+const getFirstDefined = (...values) =>
+  values.find((value) => value !== undefined && value !== null);
+
+const normalizeStatus = (value) => {
+  const status = String(value || "Draft").trim().toLowerCase();
+  if (status === "live") return "Live";
+  if (status === "closed") return "Closed";
+  return "Draft";
+};
+
+const normalizeJobsOpening = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeDateForInput = (value) => {
+  if (!value) return "";
+  const stringValue = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
+  if (stringValue.includes("T")) return stringValue.slice(0, 10);
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+};
+
+const normalizeDrive = (doc = {}) => {
+  const normalizedId = getFirstDefined(doc.id, doc._id, doc.driveId, doc.DriveID, "");
+  const normalizedDriveId = getFirstDefined(
+    doc.DriveID,
+    doc.driveId,
+    doc.driveID,
+    "",
+  );
+  const normalizedCollegeName = getFirstDefined(
+    doc.CollegeName,
+    doc.collegeName,
+    doc.college,
+    "",
+  );
+  const normalizedStartDate = getFirstDefined(
+    doc.StartDate,
+    doc.startDate,
+    doc.start_date,
+    "",
+  );
+  const normalizedEndDate = getFirstDefined(doc.EndDate, doc.endDate, doc.end_date, "");
+  const normalizedJobs = getFirstDefined(
+    doc.JobsOpening,
+    doc.jobsOpening,
+    doc.JobOpening,
+    doc.jobOpening,
+    [],
+  );
+  const normalizedStatus = getFirstDefined(doc.Status, doc.status, "Draft");
+  const normalizedCandidateCount = getFirstDefined(
+    doc.NumberOfCandidates,
+    doc.numberOfCandidates,
+    doc.CandidateCount,
+    doc.candidateCount,
+    0,
+  );
+  const normalizedSelected = getFirstDefined(
+    doc.Selected,
+    doc.selected,
+    doc.SelectedCount,
+    doc.selectedCount,
+    0,
+  );
+
+  return {
+    ...doc,
+    id: normalizedId,
+    DriveID: String(normalizedDriveId || "").trim(),
+    CollegeName: String(normalizedCollegeName || "").trim(),
+    StartDate: normalizeDateForInput(normalizedStartDate),
+    EndDate: normalizeDateForInput(normalizedEndDate),
+    JobsOpening: normalizeJobsOpening(normalizedJobs),
+    Status: normalizeStatus(normalizedStatus),
+    NumberOfCandidates: Number(normalizedCandidateCount) || 0,
+    Selected: Number(normalizedSelected) || 0,
+  };
 };
 
 export default function useDriveManagement({ onDrivesUpdate } = {}) {
@@ -51,14 +150,7 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
     try {
       setDrivesLoading(true);
       const data = await fetchDrives({ limit: 5000 });
-      const drivesData = (data || []).map((doc) => ({
-        ...doc,
-        id: doc._id,
-        JobsOpening: Array.isArray(doc.JobsOpening) ? doc.JobsOpening : [],
-        NumberOfCandidates: Number(doc.NumberOfCandidates) || 0,
-        Selected: Number(doc.Selected) || 0,
-        Status: doc.Status || "Draft",
-      }));
+      const drivesData = (data || []).map((doc) => normalizeDrive(doc));
 
       setDrives(drivesData);
       setDrivesError(null);
@@ -90,7 +182,7 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
       EndDate: newDrive.EndDate,
       JobsOpening: Array.isArray(newDrive.JobsOpening) ? newDrive.JobsOpening : [],
       Status: newDrive.Status || "Draft",
-      NumberOfCandidates: Number(newDrive.NumberOfCandidates) || 0,
+      NumberOfCandidates: 0,
       Selected: 0,
     };
 
@@ -162,9 +254,34 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
     }
   };
 
-  const openEditDrive = (drive) => {
-    setEditingDrive(drive);
+  const openEditDrive = async (drive) => {
+    const normalizedLocalDrive = normalizeDrive(drive);
+    const driveId = normalizedLocalDrive.id || normalizedLocalDrive._id;
+
+    setEditingDrive(normalizedLocalDrive);
     setIsEditOpen(true);
+
+    if (!driveId) return;
+
+    try {
+      const latestDrive = await fetchDriveById(driveId);
+      if (!latestDrive) return;
+
+      setEditingDrive((currentDrive) => {
+        const currentId = currentDrive?.id || currentDrive?._id;
+        if (String(currentId || "") !== String(driveId)) {
+          return currentDrive;
+        }
+
+        return normalizeDrive({
+          ...currentDrive,
+          ...latestDrive,
+          id: latestDrive._id || latestDrive.id || driveId,
+        });
+      });
+    } catch (error) {
+      console.error("Error fetching latest drive details:", error);
+    }
   };
 
   const closeEditDrive = () => {

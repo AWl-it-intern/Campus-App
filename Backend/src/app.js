@@ -35,7 +35,7 @@ registerRoutes(app); // ensure it mounts at "/api" inside, or do: app.use("/api"
 //Add add dist folder from frontend in the clint/dist and uncomment the lines in the server.js to serve the frontend in production.
 
 // --- Serve Vite build --- uncomment this when you have a production build of the frontend in ../client/dist
-// const clientDist = path.join(__dirname, "..", "client", "dist");   
+// const clientDist = path.join(__dirname, "..", "client", "dist");    
 // app.use(express.static(clientDist)); 
 
 // --- Robust SPA fallback for Express 5 --- uncomment this when you have a production build of the frontend in ../client/dist

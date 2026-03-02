@@ -4,7 +4,7 @@
 export { DriveFormCard } from './DriveFormCard';
 export { DrivesTableHeader } from './DrivesTableHeader';
 export { DriveTableRow } from './DriveTableRow';
-export { EditDriveModal } from './EditDriveModal';
+export { default as EditDriveModal } from './EditDriveModal';
 export { JobSelector } from './JobSelector';
 export { CreateJobModal } from './CreateJobModal';
 export { DriveQuickActionCard } from './DriveQuickActionCard';

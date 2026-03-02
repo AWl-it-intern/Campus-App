@@ -1,5 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 
+const getFirstDefined = (...values) =>
+  values.find((value) => value !== undefined && value !== null);
+
+const normalizeStatus = (value) => {
+  const status = String(value || "Draft").trim().toLowerCase();
+  if (status === "live") return "Live";
+  if (status === "closed") return "Closed";
+  return "Draft";
+};
+
+const normalizeJobsOpening = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeDateForInput = (value) => {
+  if (!value) return "";
+  const stringValue = String(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) return stringValue;
+  if (stringValue.includes("T")) return stringValue.slice(0, 10);
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+};
+
 export default function EditDriveModal({
   isOpen,
   drive,
@@ -20,13 +57,38 @@ export default function EditDriveModal({
   useEffect(() => {
     if (drive) {
       setFormData({
-        DriveID: drive.DriveID || "",
-        CollegeName: drive.CollegeName || "",
-        StartDate: drive.StartDate || "",
-        EndDate: drive.EndDate || "",
-        JobsOpening: Array.isArray(drive.JobsOpening) ? drive.JobsOpening : [],
-        Status: drive.Status || "Draft",
-        NumberOfCandidates: Number(drive.NumberOfCandidates) || 0,
+        DriveID: String(
+          getFirstDefined(drive.DriveID, drive.driveId, drive.driveID, ""),
+        ).trim(),
+        CollegeName: String(
+          getFirstDefined(drive.CollegeName, drive.collegeName, drive.college, ""),
+        ).trim(),
+        StartDate: normalizeDateForInput(
+          getFirstDefined(drive.StartDate, drive.startDate, drive.start_date, ""),
+        ),
+        EndDate: normalizeDateForInput(
+          getFirstDefined(drive.EndDate, drive.endDate, drive.end_date, ""),
+        ),
+        JobsOpening: normalizeJobsOpening(
+          getFirstDefined(
+            drive.JobsOpening,
+            drive.jobsOpening,
+            drive.JobOpening,
+            drive.jobOpening,
+            [],
+          ),
+        ),
+        Status: normalizeStatus(getFirstDefined(drive.Status, drive.status, "Draft")),
+        NumberOfCandidates:
+          Number(
+            getFirstDefined(
+              drive.NumberOfCandidates,
+              drive.numberOfCandidates,
+              drive.CandidateCount,
+              drive.candidateCount,
+              0,
+            ),
+          ) || 0,
       });
     }
   }, [drive]);

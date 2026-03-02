@@ -1,8 +1,8 @@
 import { Pencil } from "lucide-react";
 
-export default function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }) {
+export function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }) {
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50">
+    <tr className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"  onClick={() => onRowClick?.(drive)} >
       <td className="px-6 py-4">
         <span
           className="px-3 py-1 rounded-lg text-sm font-semibold"

@@ -14,5 +14,6 @@ router.get("/drive/:id", getDriveByIdHandler);
 router.delete("/drive/:id", deleteDriveHandler);
 router.put("/drive/:id", updateDriveHandler);
 router.get("/print-drives", printDrivesHandler);
+// router.patch("/drive/:id/NumberOfCandidates", updateDriveHandler); // For updating drive status only 
 
 export default router;

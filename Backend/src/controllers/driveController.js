@@ -4,6 +4,7 @@ import {
   listDrives,
   removeDrive,
   updateDrive,
+  // updateNumberOfCandidates, 
 } from "../services/driveService.js";
 
 /* -------- Insert Drive -------- */
@@ -119,3 +120,36 @@ export async function printDrivesHandler(req, res) {
     });
   }
 }
+
+// export async function updateNumberOfCandidatesHandler(req, res) {
+//   try {
+//     const driveId = req.params.id;
+//     const { NumberOfCandidates } = req.body;
+
+//     if (NumberOfCandidates === undefined) {
+//       return res.status(400).json({
+//         success: false,
+//         error: "NumberOfCandidates is required",
+//       });
+//     }
+
+//     const result = await updateNumberOfCandidates(driveId, NumberOfCandidates);
+
+//     if (result.matchedCount === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         error: "Drive not found",
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       message: "Number of candidates updated successfully",
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       error: err.message,
+//     });
+//   }
+// }

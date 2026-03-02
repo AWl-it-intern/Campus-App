@@ -11,7 +11,7 @@ const CampusRecruitLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const hrAdmin = tempAuth.hrAdmin;
-  const candidateAuth = tempAuth.candidate || { email: "", password: "" };
+  const candidateAuth = tempAuth.candidate;  //  ADD  this here || { email: "", password: "" }
 
   const handleCandidateLogin = () => {
     const matchesEmail =

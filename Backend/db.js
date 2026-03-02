@@ -16,6 +16,14 @@ const client = new MongoClient(uri, {
 
 let db;
 
+function parseCandidateSequence(candidateId) {
+  if (!candidateId) return null;
+  const match = String(candidateId).trim().match(/^CND(\d+)$/i);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 async function getMaxCandidateSequence() {
   if (!db) {
     throw new Error("DB not connected. Call connectDB() first.");
@@ -30,12 +38,9 @@ async function getMaxCandidateSequence() {
 
   for await (const doc of cursor) {
     const value = doc.CandidateID || "";
-    const match = String(value).match(/(\d+)/);
-    if (match) {
-      const parsed = Number(match[1]);
-      if (Number.isFinite(parsed)) {
-        maxSequence = Math.max(maxSequence, parsed);
-      }
+    const parsed = parseCandidateSequence(value);
+    if (parsed !== null) {
+      maxSequence = Math.max(maxSequence, parsed);
     }
   }
 
@@ -51,7 +56,7 @@ async function getNextSequence(sequenceName, count = 1) {
   const existing = await counters.findOne({ _id: sequenceName });
   let seed = existing?.seq || 0;
 
-  if (sequenceName === "candidateId") {
+  if (!existing && sequenceName === "candidateId") {
     const maxCandidate = await getMaxCandidateSequence();
     if (maxCandidate > seed) {
       seed = maxCandidate;
@@ -78,6 +83,194 @@ function formatCandidateId(sequenceNumber) {
   return `CND${String(sequenceNumber).padStart(3, "0")}`;
 }
 
+async function ensureSequenceAtLeast(sequenceName, minValue) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  if (!Number.isFinite(minValue) || minValue <= 0) {
+    return;
+  }
+
+  const counters = db.collection("counters");
+  await counters.updateOne(
+    { _id: sequenceName },
+    { $max: { seq: minValue } },
+    { upsert: true },
+  );
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeStringArray(values) {
+  if (!Array.isArray(values)) return [];
+
+  return Array.from(
+    new Set(
+      values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function extractDriveReferences(source = {}) {
+  return normalizeStringArray([
+    source?.driveId,
+    source?.DriveID,
+    source?.assignedDriveId,
+    source?.AssignedDriveId,
+  ]);
+}
+
+function normalizeDriveCandidateIds(source = {}) {
+  return normalizeStringArray(
+    source?.CandidateIDs ||
+      source?.candidateIDs ||
+      source?.candidateIds ||
+      [],
+  );
+}
+
+function mapDriveWithCandidateStats(drive = {}) {
+  const candidateIds = normalizeDriveCandidateIds(drive);
+  return {
+    ...drive,
+    CandidateIDs: candidateIds,
+    NumberOfCandidates: candidateIds.length,
+  };
+}
+
+function getCandidateDriveKey(candidate = {}) {
+  const value = String(candidate?.CandidateID || "").trim();
+  return value || null;
+}
+
+function normalizeDriveObjectIdStrings(values = []) {
+  return Array.from(
+    new Set(
+      (values || [])
+        .filter(Boolean)
+        .map((value) => String(value))
+        .filter((value) => ObjectId.isValid(value)),
+    ),
+  );
+}
+
+async function resolveDriveObjectIdsByReferences(references = [], cache = new Map()) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const drivesCollection = db.collection("Drives");
+  const resolvedIds = new Set();
+
+  for (const reference of normalizeStringArray(references)) {
+    const cacheKey = String(reference).toLowerCase();
+    if (cache.has(cacheKey)) {
+      const cachedId = cache.get(cacheKey);
+      if (cachedId) {
+        resolvedIds.add(cachedId);
+      }
+      continue;
+    }
+
+    let resolvedId = null;
+
+    if (ObjectId.isValid(reference)) {
+      const byObjectId = await drivesCollection.findOne(
+        { _id: new ObjectId(reference) },
+        { projection: { _id: 1 } },
+      );
+      if (byObjectId?._id) {
+        resolvedId = String(byObjectId._id);
+      }
+    }
+
+    if (!resolvedId) {
+      const byDriveCode = await drivesCollection.findOne(
+        {
+          DriveID: {
+            $regex: `^${escapeRegExp(reference)}$`,
+            $options: "i",
+          },
+        },
+        { projection: { _id: 1 } },
+      );
+      if (byDriveCode?._id) {
+        resolvedId = String(byDriveCode._id);
+      }
+    }
+
+    cache.set(cacheKey, resolvedId);
+    if (resolvedId) {
+      resolvedIds.add(resolvedId);
+    }
+  }
+
+  return normalizeDriveObjectIdStrings(Array.from(resolvedIds)).map(
+    (value) => new ObjectId(value),
+  );
+}
+
+async function addCandidateToDrives(candidateKey, driveObjectIds = []) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const normalizedCandidateKey = String(candidateKey || "").trim();
+  if (!normalizedCandidateKey || driveObjectIds.length === 0) {
+    return;
+  }
+
+  await db.collection("Drives").updateMany(
+    { _id: { $in: driveObjectIds } },
+    { $addToSet: { CandidateIDs: normalizedCandidateKey } },
+  );
+}
+
+async function removeCandidateFromDrives(candidateKey, driveObjectIds = []) {
+  if (!db) {
+    throw new Error("DB not connected. Call connectDB() first.");
+  }
+
+  const normalizedCandidateKey = String(candidateKey || "").trim();
+  if (!normalizedCandidateKey || driveObjectIds.length === 0) {
+    return;
+  }
+
+  await db.collection("Drives").updateMany(
+    { _id: { $in: driveObjectIds } },
+    { $pull: { CandidateIDs: normalizedCandidateKey } },
+  );
+}
+
+async function syncCandidateDriveMembership(candidateKey, previousDriveIds = [], nextDriveIds = []) {
+  const previousSet = new Set(
+    normalizeDriveObjectIdStrings(previousDriveIds.map((value) => String(value))),
+  );
+  const nextSet = new Set(
+    normalizeDriveObjectIdStrings(nextDriveIds.map((value) => String(value))),
+  );
+
+  const driveIdsToAdd = Array.from(nextSet)
+    .filter((value) => !previousSet.has(value))
+    .map((value) => new ObjectId(value));
+  const driveIdsToRemove = Array.from(previousSet)
+    .filter((value) => !nextSet.has(value))
+    .map((value) => new ObjectId(value));
+
+  if (driveIdsToAdd.length > 0) {
+    await addCandidateToDrives(candidateKey, driveIdsToAdd);
+  }
+
+  if (driveIdsToRemove.length > 0) {
+    await removeCandidateFromDrives(candidateKey, driveIdsToRemove);
+  }
+}
+
 /* -------- Connect -------- */
 export async function connectDB() {
   if (db) return db;
@@ -102,6 +295,7 @@ export async function insertCandidate(candidateData) {
   }
 
   try {
+    const { CandidateID: _ignoredCandidateId, ...safeCandidateData } = candidateData || {};
     const { start } = await getNextSequence("candidateId", 1);
     const candidateId = formatCandidateId(start);
     const result = await db.collection("Candidate").insertOne({
@@ -109,7 +303,7 @@ export async function insertCandidate(candidateData) {
       AssignedPanelist: Array.isArray(candidateData?.AssignedPanelist)
         ? candidateData.AssignedPanelist
         : [],
-      ...candidateData,
+      ...safeCandidateData,
       CandidateID: candidateId,
       createdAt: new Date(),
     });
@@ -136,20 +330,53 @@ export async function insertManyCandidates(candidatesData = []) {
     throw new Error("Candidates array is required");
   }
 
-  const { start } = await getNextSequence("candidateId", candidatesData.length);
+  let maxProvidedSequence = 0;
+  const candidatesNeedingId = [];
+
+  candidatesData.forEach((candidate, index) => {
+    const parsed = parseCandidateSequence(candidate?.CandidateID);
+    if (parsed !== null) {
+      maxProvidedSequence = Math.max(maxProvidedSequence, parsed);
+    } else {
+      candidatesNeedingId.push(index);
+    }
+  });
+
+  if (maxProvidedSequence > 0) {
+    await ensureSequenceAtLeast("candidateId", maxProvidedSequence);
+  }
+
+  let generatedStart = null;
+  if (candidatesNeedingId.length > 0) {
+    const { start } = await getNextSequence("candidateId", candidatesNeedingId.length);
+    generatedStart = start;
+  }
+
+  let generatedOffset = 0;
 
   const preparedCandidates = candidatesData.map((candidate, index) => {
     if (!candidate?.email) {
       throw new Error(`Email is required for candidate at row ${index + 1}`);
     }
 
+    const providedSequence = parseCandidateSequence(candidate?.CandidateID);
+    let candidateId = null;
+    if (providedSequence !== null) {
+      candidateId = formatCandidateId(providedSequence);
+    } else if (generatedStart !== null) {
+      candidateId = formatCandidateId(generatedStart + generatedOffset);
+      generatedOffset += 1;
+    }
+
+    const { CandidateID: _ignoredCandidateId, ...safeCandidate } = candidate || {};
+
     return {
       ApplicationStatus: candidate?.ApplicationStatus || "Under Review",
       AssignedPanelist: Array.isArray(candidate?.AssignedPanelist)
         ? candidate.AssignedPanelist
         : [],
-      ...candidate,
-      CandidateID: formatCandidateId(start + index),
+      ...safeCandidate,
+      CandidateID: candidateId,
       email: String(candidate.email).trim(),
       name: String(candidate.name || "").trim(),
       college: String(candidate.college || "").trim(),
@@ -410,6 +637,25 @@ export async function editDrive(id, updateData) {
   return result;
 }
 
+// /* -------- Patch Drive NumberOfCandidates -------- */
+// export async function updateNumberOfCandidates(id, numberOfCandidates) {
+//   if (!db) {
+//     throw new Error("DB not connected. Call connectDB() first.");
+//   }
+
+//   const result = await db.collection("Drives").updateOne(
+//     { _id: new ObjectId(id) },
+//     {
+//       $set: {
+//         NumberOfCandidates: Number(numberOfCandidates) || 0,
+//         updatedAt: new Date(),
+//       },
+//     },
+//   );
+
+//   return result;
+// }
+
 /* -------- Get Drive By Id -------- */
 export async function getDriveById(id) {
   if (!db) {
@@ -446,17 +692,54 @@ export async function insertUsers(UserData) {
 
 
 
-/* -------- Delete Candidate -------- */
+
+/* -------- Delete Candidate (Transactional) -------- */
 export async function deleteCandidate(id) {
   if (!db) {
-    throw new Error('DB not connected. Call connectDB() first.');
+    throw new Error("DB not connected. Call connectDB() first.");
   }
 
-  const result = await db.collection('Candidate').deleteOne({ _id: new ObjectId(id) });
+  // If id isn't a valid ObjectId, behave as "not found"
+  if (!ObjectId.isValid(id)) {
+    return { deletedCount: 0 };
+  }
 
-  console.log(' Candidate deleted:', result.deletedCount);
+  const objectId = new ObjectId(id);
+  const hexId = objectId.toString(); // covers your string storage case in Jobs.assignedCandidates
+  const session = client.startSession();
 
-  return result;
+  try {
+    let deleteResult = { deletedCount: 0 };
+
+    await session.withTransaction(async () => {
+      // 1) Delete the candidate document
+      deleteResult = await db
+        .collection("Candidate")
+        .deleteOne({ _id: objectId }, { session });
+
+      if (deleteResult.deletedCount === 0) {
+        // abort cleanly so caller returns 404
+        throw new Error("NOT_FOUND");
+      }
+
+      // 2) Remove the candidate id from Jobs.assignedCandidates
+      //    - Handles both ObjectId arrays and string arrays (String(ObjectId))
+      await db.collection("Jobs").updateMany(
+        { assignedCandidates: { $in: [objectId, hexId, id] } },
+        { $pull: { assignedCandidates: { $in: [objectId, hexId, id] } } },
+        { session }
+      );
+    });
+
+    return deleteResult;
+  } catch (err) {
+    if (err.message === "NOT_FOUND") {
+      return { deletedCount: 0 };
+    }
+    throw err; // bubble up to handler -> 500
+  } finally {
+    await session.endSession();
+  }
 }
 
 //------------------Edit Candidate-----------------
