@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useCreatePanelist.js
+ * Logic Fields Used: panelist/job/candidate datasets, filters, modal states, assignment/schedule handlers
+ * Input Type: { onPanelistsUpdate?: Function }
+ * Output Type: ReactElement
+ */
 import { useMemo } from "react";
 import { Users, UserCheck, Briefcase, CalendarClock } from "lucide-react";
 import { useSearchParams } from "react-router-dom";

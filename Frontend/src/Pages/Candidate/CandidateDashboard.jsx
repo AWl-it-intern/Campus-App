@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useCandidateDashboard.js
+ * Logic Fields Used: dashboardData, notification state, loading/error state, action handlers
+ * Input Type: None
+ * Output Type: ReactElement
+ */
 import { useNavigate } from "react-router-dom";
 
 import awlLogo from "../Common/Awllogo.svg";

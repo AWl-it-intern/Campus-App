@@ -6,7 +6,7 @@ import {
   mapDriveWithCandidateStats,
   normalizeJobNames,
   normalizeStringArray,
-} from "./helpers.js";
+} from "./helpers/index.js";
 
 function normalizeDriveJobsOpening(value) {
   if (Array.isArray(value)) {

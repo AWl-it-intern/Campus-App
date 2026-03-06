@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useCreateJob.js
+ * Logic Fields Used: jobs/newJob/search state, filteredJobs, candidate mapping, create/delete handlers
+ * Input Type: { onJobAssignment?: Function, onJobsUpdate?: Function }
+ * Output Type: ReactElement
+ */
 import { useMemo, useState } from "react";
 import { Award, Briefcase, UserCheck, Users } from "lucide-react";
 import { useSearchParams } from "react-router-dom";

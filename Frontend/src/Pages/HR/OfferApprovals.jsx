@@ -1,65 +1,42 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useOfferApprovals.js
+ * Logic Fields Used: offerItems, summaryCards
+ * Input Type: None
+ * Output Type: ReactElement
+ */
 import { Award, Briefcase, UserCheck, Users } from "lucide-react";
 
 import HrShell from "../../Components/common/HrShell.jsx";
+import useOfferApprovals from "../../hooks/useOfferApprovals";
 import HR_COLORS from "../../theme/hrPalette";
-
-const OFFER_ITEMS = [
-  {
-    candidate: "Sneha Rao",
-    role: "Frontend Developer",
-    package: "6.5 LPA",
-    status: "Pending Approval",
-  },
-  {
-    candidate: "Rahul Arora",
-    role: "Data Analyst",
-    package: "7.2 LPA",
-    status: "Ready to Release",
-  },
-  {
-    candidate: "Nisha Das",
-    role: "QA Engineer",
-    package: "5.8 LPA",
-    status: "Compensation Review",
-  },
-];
 
 export default function OfferApprovals() {
   const colors = HR_COLORS;
+  const { offerItems, summaryCards } = useOfferApprovals();
+  const summaryIconMap = {
+    review: UserCheck,
+    budget: Briefcase,
+    approved: Users,
+  };
 
   return (
-    <HrShell
-      title="Offer Approvals"
-      subtitle=""
-    >
+    <HrShell title="Offer Approvals" subtitle="">
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <article className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center gap-3">
-            <UserCheck size={18} style={{ color: colors.stonewash }} />
-            <p className="text-sm text-gray-500">Offers In Review</p>
-          </div>
-          <p className="text-2xl font-bold mt-3" style={{ color: colors.stonewash }}>
-            12
-          </p>
-        </article>
-        <article className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center gap-3">
-            <Briefcase size={18} style={{ color: colors.stonewash }} />
-            <p className="text-sm text-gray-500">Budget Reserved</p>
-          </div>
-          <p className="text-2xl font-bold mt-3" style={{ color: colors.stonewash }}>
-            48.6 LPA
-          </p>
-        </article>
-        <article className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center gap-3">
-            <Users size={18} style={{ color: colors.stonewash }} />
-            <p className="text-sm text-gray-500">Approved This Week</p>
-          </div>
-          <p className="text-2xl font-bold mt-3" style={{ color: colors.stonewash }}>
-            7
-          </p>
-        </article>
+        {summaryCards.map((item) => {
+          const SummaryIcon = summaryIconMap[item.iconKey];
+          return (
+            <article key={item.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center gap-3">
+                <SummaryIcon size={18} style={{ color: colors.stonewash }} />
+                <p className="text-sm text-gray-500">{item.label}</p>
+              </div>
+              <p className="text-2xl font-bold mt-3" style={{ color: colors.stonewash }}>
+                {item.value}
+              </p>
+            </article>
+          );
+        })}
       </section>
 
       <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -75,7 +52,7 @@ export default function OfferApprovals() {
             </tr>
           </thead>
           <tbody>
-            {OFFER_ITEMS.map((item) => (
+            {offerItems.map((item) => (
               <tr key={`${item.candidate}-${item.role}`} className="border-b border-gray-100 last:border-0">
                 <td className="px-6 py-4 text-sm text-gray-800">{item.candidate}</td>
                 <td className="px-6 py-4 text-sm text-gray-800">{item.role}</td>

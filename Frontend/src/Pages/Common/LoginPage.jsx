@@ -1,67 +1,19 @@
-import { useState } from "react";
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useLoginPage.js
+ * Logic Fields Used: roleTabs, activeTab, setActiveTab, email, setEmail, password, setPassword, handleSubmit
+ * Input Type: None
+ * Output Type: ReactElement
+ */
 import { useNavigate } from "react-router-dom";
-import awlLogo from "./Awllogo.svg";
-import tempAuth from "../../data/tempAuth.json";
 
-const ROLE_TABS = ["Candidate", "Panelist", "HR Admin", "College"];
+import awlLogo from "./Awllogo.svg";
+import useLoginPage from "../../hooks/useLoginPage";
 
 const CampusRecruitLogin = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("Candidate");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const hrAdmin = tempAuth.hrAdmin;
-  const candidateAuth = tempAuth.candidate;  //  ADD  this here || { email: "", password: "" }
-
-  const handleCandidateLogin = () => {
-    const matchesEmail =
-      email.trim().toLowerCase() === candidateAuth.email.toLowerCase();
-    const matchesPassword = password === candidateAuth.password;
-
-    if (!matchesEmail || !matchesPassword) {
-      alert("Invalid candidate credentials.");
-      return;
-    }
-
-    localStorage.setItem("candidate_auth", "true");
-    localStorage.setItem("candidate_name", "Candidate");
-    localStorage.setItem("candidate_email", candidateAuth.email);
-    localStorage.removeItem("candidate_id");
-    localStorage.removeItem("hr_auth");
-    localStorage.removeItem("hr_email");
-    navigate("/candidate-dashboard");
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    if (activeTab === "Candidate") {
-      handleCandidateLogin();
-      return;
-    }
-
-    if (activeTab === "HR Admin") {
-      const isValidHrLogin =
-        email.trim().toLowerCase() === hrAdmin.email.toLowerCase() &&
-        password === hrAdmin.password;
-
-      if (!isValidHrLogin) {
-        alert("Invalid HR Admin credentials.");
-        return;
-      }
-
-      localStorage.setItem("hr_auth", "true");
-      localStorage.setItem("hr_email", hrAdmin.email);
-      localStorage.removeItem("candidate_auth");
-      localStorage.removeItem("candidate_name");
-      localStorage.removeItem("candidate_email");
-      localStorage.removeItem("candidate_id");
-      navigate("/HR/dashboard");
-      return;
-    }
-
-    console.log(`Logging in as ${activeTab}:`, { email, password });
-  };
+  const { roleTabs, activeTab, setActiveTab, email, setEmail, password, setPassword, handleSubmit } =
+    useLoginPage({ navigate });
 
   return (
     <div
@@ -80,7 +32,7 @@ const CampusRecruitLogin = () => {
 
         <section className="mt-12 w-full max-w-[448px] rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_14px_35px_rgba(10,10,10,0.08)]">
           <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#ECECF0] p-1">
-            {ROLE_TABS.map((role) => (
+            {roleTabs.map((role) => (
               <button
                 key={role}
                 type="button"

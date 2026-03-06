@@ -1,4 +1,4 @@
-import { extractDriveReferences, normalizeAssignedJobs } from "../helpers.js";
+import { extractDriveReferences, normalizeAssignedJobs } from "../helpers/index.js";
 
 const OBJECT_ID_PATTERN = /^[a-f0-9]{24}$/i;
 const safeText = (value) => String(value || "").trim();

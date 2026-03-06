@@ -8,7 +8,7 @@ import {
   removeCandidateFromDrives,
   resolveDriveObjectIdsByReferences,
   syncJobsForCandidate,
-} from "../helpers.js";
+} from "../helpers/index.js";
 
 export async function deleteCandidate(id) {
   const db = getDB();

@@ -10,7 +10,7 @@ import {
   resolveDriveDocsByReferences,
   syncCandidateDriveMembership,
   syncJobsForCandidate,
-} from "../helpers.js";
+} from "../helpers/index.js";
 
 function sanitizeCandidateInput(candidateData = {}) {
   const {

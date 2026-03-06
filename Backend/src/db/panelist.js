@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDB } from "./core.js";
-import { normalizeStringArray } from "./helpers.js";
+import { normalizeStringArray } from "./helpers/index.js";
 
 function normalizePanelistJobs(values) {
   return normalizeStringArray(values || []);

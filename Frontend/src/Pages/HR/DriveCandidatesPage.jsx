@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useDriveCandidates.js
+ * Logic Fields Used: filteredCandidates, loading/error state, drive resolvers, reload handler
+ * Input Type: URL params + navigation state (driveId/jobId/jobName/collegeName)
+ * Output Type: ReactElement
+ */
 import { ArrowRight } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";

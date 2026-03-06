@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useDrivePage.js
+ * Logic Fields Used: drive, jobRows, loading, error
+ * Input Type: URL params (driveId)
+ * Output Type: ReactElement
+ */
 import { Loader2, AlertTriangle } from "lucide-react";
 import { useParams } from "react-router-dom";
 
@@ -57,4 +64,3 @@ export default function DrivePage() {
     </HrShell>
   );
 }
-

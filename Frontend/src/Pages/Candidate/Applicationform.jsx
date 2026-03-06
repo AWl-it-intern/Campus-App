@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useCandidateApplicationForm.js
+ * Logic Fields Used: activeStep, isLoading, formData, step/update/submit handlers
+ * Input Type: None
+ * Output Type: ReactElement
+ */
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

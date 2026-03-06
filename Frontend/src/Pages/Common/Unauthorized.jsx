@@ -1,3 +1,9 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: None (static page)
+ * Input Type: None
+ * Output Type: ReactElement
+ */
 export default function Unauthorized() {
   return (
     <div>

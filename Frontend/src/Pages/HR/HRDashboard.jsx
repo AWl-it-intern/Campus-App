@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useHrDashboard.js
+ * Logic Fields Used: candidateCount, panelistCount, totalDriveCount
+ * Input Type: None
+ * Output Type: ReactElement
+ */
 import { Users, UsersRound, BriefcaseBusinessIcon, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

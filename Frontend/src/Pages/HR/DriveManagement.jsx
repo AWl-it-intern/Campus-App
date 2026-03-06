@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useDriveManagement.js
+ * Logic Fields Used: drive/job datasets, filters, stats, edit modal state, create/delete/edit handlers
+ * Input Type: { onDrivesUpdate?: Function }
+ * Output Type: ReactElement
+ */
 import { useMemo } from "react";
 import {
   MapPin,

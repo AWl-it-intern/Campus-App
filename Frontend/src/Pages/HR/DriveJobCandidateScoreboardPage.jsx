@@ -1,3 +1,10 @@
+/**
+ * File Type: UI/UX Page
+ * Business Logic File Used: ../../hooks/useDriveJobScoreboard.js
+ * Logic Fields Used: loading/error/rows/driveLabel for drive-job scoreboard table
+ * Input Type: URL params + navigation state (driveId/jobId/JobName/CollegeName)
+ * Output Type: ReactElement
+ */
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";

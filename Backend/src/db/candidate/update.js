@@ -11,7 +11,7 @@ import {
   resolveDriveObjectIdsByReferences,
   syncCandidateDriveMembership,
   syncJobsForCandidate,
-} from "../helpers.js";
+} from "../helpers/index.js";
 
 export async function editcandidate(id, updateData) {
   const db = getDB();

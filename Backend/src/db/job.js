@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getDB } from "./core.js";
-import { normalizeDriveObjectIdStrings, normalizeStringArray } from "./helpers.js";
+import { normalizeDriveObjectIdStrings, normalizeStringArray } from "./helpers/index.js";
 
 function normalizeJobPayload(jobData = {}) {
   const {

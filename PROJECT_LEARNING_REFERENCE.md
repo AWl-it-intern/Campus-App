@@ -1,354 +1,269 @@
-# Campus Recruitment App Learning Roadmap (Teacher Version)
+# Campus Recruitment App Learning Reference (Beginner -> Builder)
 
-This file is your guided learning path for this project.
+Last updated: 2026-03-06
 
-Goal:
-- Learn the project in the correct order
-- Know exactly what to open in code
-- Move from beginner to confident contributor
-
-How to use this file:
-1. Follow phases in order.
-2. Complete the practice task at the end of each phase.
-3. Do not jump to advanced topics too early.
+This is your guided learning plan for this codebase.
+If you follow this order, you will understand both frontend and backend quickly.
 
 ---
 
-## Phase 0: First-Day Orientation (30 to 60 min)
+## 1) Before You Start
 
-### What to understand
-- This is a full-stack app.
-- Frontend and backend are separate apps.
-- Data is stored in MongoDB.
+### What this project is
+- Frontend: React + React Router + Tailwind + Axios
+- Backend: Node.js + Express + MongoDB
+- Data model: Candidate, Drives, Jobs, Panelist, Users
 
-### Open these files first
-- `Frontend/src/Routes/AppRoutes.jsx`
-- `Frontend/src/Components/common/HrSlideDrawer.jsx`
-- `Backend/src/routes/index.js`
+### What you should know first
+- Frontend now uses a split structure:
+  - UI files (Pages/Components)
+  - Business logic hooks (Hooks + Feature hooks)
+- Backend uses layered flow:
+  - route -> controller -> service -> db/helpers
 
-### Outcome
-You should be able to answer:
-- What pages exist?
-- Which URL opens each page?
-- Which backend route files exist?
+### Visual Map: Architecture Snapshot
 
-### Practice
-- Write a simple map in your notebook: `Route -> Page` for 5 HR screens.
-
----
-
-## Phase 1: Run the Project Locally
-
-### Backend
-```powershell
-cd Backend
-npm install
-npm run dev
+```mermaid
+flowchart LR
+  A[React Pages + Components] --> B[Hooks]
+  B --> C[Services]
+  C --> D[Express Routes]
+  D --> E[Controllers]
+  E --> F[Services]
+  F --> G[DB Modules + Helpers]
+  G --> H[(MongoDB)]
 ```
 
-### Frontend
-```powershell
-cd Frontend
-npm install
-npm run dev
+---
+
+## 2) Recommended Reading Order
+
+### Step 1: Understand routes and app entry points
+Open:
+1. `Frontend/src/Routes/AppRoutes.jsx`
+2. `Frontend/src/Routes/ProtectedRoute.jsx`
+3. `Backend/src/app.js`
+4. `Backend/src/routes/index.js`
+
+Outcome:
+- You can explain public vs protected routes.
+- You can list all backend API route modules.
+
+### Step 2: Understand shell/layout and navigation
+Open:
+1. `Frontend/src/Components/common/HrShell.jsx`
+2. `Frontend/src/Components/common/HrSlideDrawer.jsx`
+3. `Frontend/src/Components/common/SectionNavBar.jsx`
+
+Outcome:
+- You can explain how HR menu and in-page tabs work.
+
+### Step 3: Learn one complete feature end-to-end
+Start with Candidate Management:
+1. `Frontend/src/Pages/HR/CreateUsers.jsx`
+2. `Frontend/src/hooks/useCreateUsers.js`
+3. `Frontend/src/services/candidatesService.js`
+4. `Backend/src/routes/candidateRoutes.js`
+5. `Backend/src/controllers/candidateController.js`
+6. `Backend/src/services/candidateService.js`
+7. `Backend/src/db/candidate/*`
+8. `Backend/src/db/helpers.js`
+
+Outcome:
+- You can trace Create / Update / Delete / Bulk Import fully.
+
+### Visual Map: Reading Roadmap
+
+```mermaid
+flowchart TD
+  S1[Step 1: Routes and Entrypoints] --> S2[Step 2: Shell and Navigation]
+  S2 --> S3[Step 3: One Full Feature End-to-End]
+  S3 --> S4[Backend Normalization and Sync Rules]
+  S4 --> S5[Process Modules: Pipeline + Aptitude]
 ```
 
-### Scripts you should know
-- Frontend: `dev`, `build`, `lint`, `preview`
-- Backend: `dev`, `start`
+---
 
-### Outcome
-You can run both sides and log in as Candidate and HR.
+## 3) Feature Modules You Must Know
 
-### Practice
-- Open DevTools Network tab and observe one API call when loading Candidate List.
+## 3.1 Candidate side
+- `useCandidateApplicationForm`
+- `useCandidateDashboard`
+- `utils/candidateData.js`
+
+Key ideas:
+- Application form is step-based.
+- Saved application uses localStorage (`candidate_application`).
+- Dashboard merges saved application + live candidate fetch + flow template.
+
+## 3.2 HR: Core management
+- `useCreateUsers`
+- `useCreateJob`
+- `useCreatePanelist`
+- `useDriveManagement`
+- `useDrivePage`
+- `useDriveCandidates`
+- `useDriveJobScoreboard`
+
+Key ideas:
+- Candidates can be selected in bulk for assign/delete.
+- Drive rows and job rows are clickable navigation surfaces.
+- Scoreboard has selector mode and context mode.
+
+## 3.3 HR: Process modules (recent split)
+- `features/hr/recruitmentPipeline/*`
+  - `useRecruitmentPipeline`
+- `features/hr/aptitude/*`
+  - `useAptitudeTestManagement`
+  - `useAptitudeSelectionState`
+
+Key ideas:
+- Recruitment flow templates are saved in localStorage.
+- Aptitude dispatch log and aptitude ID counter are localStorage-based.
+
+### Visual Map: Feature Grouping
+
+```mermaid
+flowchart TD
+  ROOT[Frontend]
+  ROOT --> CAND[Candidate Features]
+  ROOT --> HRCORE[HR Core Management]
+  ROOT --> HRPROC[HR Process Modules]
+  CAND --> C1[useCandidateApplicationForm]
+  CAND --> C2[useCandidateDashboard]
+  HRCORE --> H1[useCreateUsers]
+  HRCORE --> H2[useCreateJob]
+  HRCORE --> H3[useCreatePanelist]
+  HRCORE --> H4[useDriveManagement]
+  HRCORE --> H5[useDrivePage / useDriveCandidates / useDriveJobScoreboard]
+  HRPROC --> P1[useRecruitmentPipeline]
+  HRPROC --> P2[useAptitudeTestManagement + useAptitudeSelectionState]
+```
 
 ---
 
-## Phase 2: Frontend Fundamentals in This Project
+## 4) Backend Concepts You Need
 
-### Learn these concepts
-- Page components
-- Reusable components
-- Custom hooks
-- Service layer
-
-### Open these folders
-- `Frontend/src/Pages`
-- `Frontend/src/Components`
-- `Frontend/src/hooks`
-- `Frontend/src/services`
-
-### Golden rule
-A page should not directly call API URLs. It should call a hook, and the hook should call a service.
-
-### Practice
-- Trace this exact chain:
-  - `CreateUsers.jsx` -> `useCreateUsers.js` -> `candidatesService.js`
-
----
-
-## Phase 3: Routing and Auth Flow
-
-### Learn these concepts
-- Protected routes
-- Role-based guard via localStorage
-- Redirect behavior
-
-### Open these files
-- `Frontend/src/Routes/ProtectedRoute.jsx`
-- `Frontend/src/Pages/Common/LoginPage.jsx`
-
-### Important note
-Current auth is demo-level localStorage auth. It is useful for development, not production.
-
-### Practice
-- Temporarily remove `hr_auth` in browser localStorage and observe route redirect behavior.
-
----
-
-## Phase 4: Backend Fundamentals in This Project
-
-### Learn these concepts
-- Express routing
-- Controller responsibility
-- Service responsibility
-- DB layer responsibility
-
-### Open these files
-- `Backend/src/routes/*.js`
-- `Backend/src/controllers/*.js`
-- `Backend/src/services/*.js`
-- `Backend/src/db/*.js`
-
-### Mental model
-- Route: URL mapping
-- Controller: HTTP in/out
-- Service: business use case
-- DB: data persistence
-
-### Practice
-- Trace `POST /candidate` from route to DB implementation.
-
----
-
-## Phase 5: MongoDB Data and Domain Logic
-
-### Collections used
-- `Candidate`
-- `Drives`
-- `Jobs`
-- `Panelist`
-- `Users`
-- `counters`
-
-### Must-read files
+### 4.1 Canonical fields and normalization
+Read:
 - `Backend/src/db/helpers.js`
-- `Backend/src/db/candidate/create.js`
-- `Backend/src/db/candidate/update.js`
-- `Backend/src/db/candidate/delete.js`
 - `Backend/src/db/drive.js`
+- `Backend/src/db/panelist.js`
+- `Backend/src/db/candidate/shared.js`
 
-### Why this matters
-This project has cross-entity sync logic. Changing one entity can update others.
+Important:
+- Data may arrive in legacy key formats.
+- DB layer normalizes to canonical fields.
 
-### Practice
-- Read candidate delete flow and list every related entity that gets updated.
+### 4.2 Candidate/Drive/Job synchronization
+Read:
+- `syncCandidateDriveMembership`
+- `syncJobsForCandidate`
+- `linkJobsToDrive`
+- `recalculateDriveCandidateStats`
 
----
+Important:
+- One write can trigger updates in multiple collections.
 
-## Phase 6: High-Value Features to Master
+### 4.3 ID policy
+- Candidate display ID: `CND###`
+- Drive display ID: `DRV###` (custom ID)
+- Candidate stores BOTH drive references:
+  - `driveId` (Drive `_id`)
+  - `DriveID` (custom readable ID)
 
-### 1) Candidate Management
-Focus files:
-- `Frontend/src/Pages/HR/CreateUsers.jsx`
-- `Frontend/src/hooks/useCreateUsers.js`
-- `Frontend/src/Components/users/*`
-
-What to understand:
-- Candidate CRUD
-- Bulk selection
-- Bulk job assignment
-- Bulk delete
-- CSV import/export
-
-### 2) Drive Management
-Focus files:
-- `Frontend/src/Pages/HR/DriveManagement.jsx`
-- `Frontend/src/hooks/useDriveManagement.js`
-- `Frontend/src/Components/drivemanagement/*`
-
-What to understand:
-- Drive creation/update/delete
-- Filtering and stats
-- Clicking drive row opens drive details
-
-### 3) Drive Job Candidate Flow
-Focus files:
-- `Frontend/src/Pages/HR/DrivePage.jsx`
-- `Frontend/src/Pages/HR/DriveCandidatesPage.jsx`
-- `Frontend/src/hooks/useDrivePage.js`
-- `Frontend/src/hooks/useDriveCandidates.js`
-
-What to understand:
-- Drive -> Job -> Candidates navigation
-- Clickable candidate rows
-- Candidate details card modal
-
-### 4) Leaderboard
-Focus files:
-- `Frontend/src/Pages/HR/DriveJobCandidateScoreboardPage.jsx`
-- `Frontend/src/hooks/useDriveJobScoreboard.js`
-
-What to understand:
-- Selector mode and context mode
-- Row-building logic
-- Score/status rendering
-
-### 5) Recruitment Pipeline Templates
-Focus files:
-- `Frontend/src/Pages/HR/RecruitmentPipeline.jsx`
-- `Frontend/src/utils/recruitmentFlowTemplates.js`
-
-What to understand:
-- LocalStorage-based flow templates
-- Save/list/delete behavior
-- Key normalization and cleanup
+Frontend should display custom IDs where possible.
 
 ---
 
-## Phase 7: API Contracts You Should Memorize
+## 5) How to Add a New Module Safely
 
-### Candidate APIs
-- `POST /candidate`
-- `POST /candidate/bulk`
-- `GET /print-candidates`
-- `PATCH /candidate/:id`
-- `DELETE /candidate/:id`
+Use this template:
+1. Create route in `AppRoutes.jsx`.
+2. Create page in `Pages/...` (UI composition only).
+3. Create hook in `hooks/` or `features/.../useX.js` (business logic).
+4. Create/extend service file for API calls.
+5. Add backend route/controller/service/db only if persistence is required.
+6. Add top-of-file doc block with:
+   - logic file used
+   - key fields
+   - input/output type
 
-### Drive APIs
-- `POST /drive`
-- `GET /drive/:id`
-- `PUT /drive/:id`
-- `DELETE /drive/:id`
-- `GET /print-drives`
-
-### Job APIs
-- `POST /job`
-- `DELETE /job/:id`
-- `GET /print-jobs`
-
-### Panelist APIs
-- `POST /panelist`
-- `PUT /panelist/:id`
-- `DELETE /panelist/:id`
-- `GET /print-panelists`
-
-### Users API
-- `POST /Users`
-
-### Practice
-- Pick one endpoint and verify:
-  - frontend service function
-  - route handler
-  - controller
-  - service
-  - db function
+Keep files small and focused.
 
 ---
 
-## Phase 8: Debugging and Reading Strategy
+## 6) Testing Strategy for Beginners
 
-Use this debugging ladder:
-1. UI event is firing?
-2. Hook method called?
-3. Service method called?
-4. HTTP request sent?
-5. Correct backend route hit?
-6. Controller response status/body correct?
-7. DB changes actually persisted?
-8. Frontend state refreshed after mutation?
+### Manual test pattern (for each feature)
+1. Open page.
+2. Perform create/update/delete action.
+3. Confirm network request method + endpoint.
+4. Refresh page.
+5. Verify persisted result.
+6. Verify linked side-effects (job/drive/panelist sync).
 
-Quick tools:
-- Frontend console
-- Browser network tab
-- Backend terminal logs
-
----
-
-## Phase 9: Beginner Safe Contribution Plan
-
-Do these tasks in order:
-1. Rename one UI label in a page and run lint.
-2. Add one filter input in a list page using existing hook pattern.
-3. Add one small display field in a modal card.
-4. Add one backend validation message in controller.
-5. Add one helper function test target (if test setup is introduced).
-
----
-
-## Common Mistakes to Avoid
-
-1. Calling API directly from page instead of service.
-2. Mutating state directly instead of immutable updates.
-3. Ignoring normalization rules for legacy field names.
-4. Forgetting side-effects when deleting entities.
-5. Hardcoding strings in many places instead of centralizing.
-
----
-
-## Official References (Use these while learning)
+### Quick commands
 
 Frontend:
-- React: https://react.dev/
-- React Router: https://reactrouter.com/
-- Vite: https://vite.dev/
-- Tailwind: https://tailwindcss.com/docs
-- Axios: https://axios-http.com/docs/intro
+```powershell
+cd Frontend
+npm run lint
+npm run build
+```
 
 Backend:
-- Node.js: https://nodejs.org/en/docs
-- Express: https://expressjs.com/
-- MongoDB Node Driver: https://www.mongodb.com/docs/drivers/node/current/
-
-Quality and security:
-- ESLint: https://eslint.org/docs/latest/
-- OWASP: https://cheatsheetseries.owasp.org/
+```powershell
+cd Backend
+npm run dev
+```
 
 ---
 
-## 7-Day Beginner Study Plan (Suggested)
+## 7) Suggested 7-Day Study Plan
 
 Day 1:
-- Run project
-- Understand route map
-- Understand auth guard
+- Routes and auth guard
+- HR shell and drawer navigation
 
 Day 2:
-- Study `CreateUsers` end-to-end
-- Observe API calls
+- Candidate management (CreateUsers + useCreateUsers)
 
 Day 3:
-- Study `DriveManagement` and `DrivePage`
-- Follow row-click navigation flow
+- Drive management and Drive details flow
 
 Day 4:
-- Study backend candidate and drive modules
-- Focus on `helpers.js`
+- Job and panelist management
 
 Day 5:
-- Study recruitment pipeline templates and leaderboard flow
+- Scoreboard + Drive candidates contextual pages
 
 Day 6:
-- Make one small frontend improvement and lint it
+- Recruitment Pipeline + Aptitude modules
 
 Day 7:
-- Make one small backend improvement and verify manually
+- Backend helper sync logic + one small code change
 
 ---
 
-## Final Advice
+## 8) Common Beginner Mistakes
 
-If you are confused, do not read random files.
-Trace one complete user action from button click to DB write and back to UI refresh.
-That single habit will make you productive quickly in this codebase.
+1. Writing API calls directly inside page files.
+2. Mixing display ID and database ID incorrectly.
+3. Forgetting that delete/update may require cross-collection sync.
+4. Updating only UI state but not persisting to backend.
+5. Forgetting to re-fetch/reload after mutation.
+
+---
+
+## 9) What to Read Next (Reference Docs)
+
+- `PROJECT_HOOKS_VARIABLES_FLOW.md` (system map)
+- `PROJECT_FULL_DATA_FLOW_USER_INTERACTION.md` (click-to-event detailed flow)
+
+Use these three docs together:
+- Learning path
+- Hook/variable map
+- End-to-end interaction flow
+
+That combination is enough to onboard a new beginner engineer.
