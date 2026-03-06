@@ -30,8 +30,8 @@ export async function printCandidates({ limit = 50, job, college, debug = false 
   );
 
   if (debug) {
-    console.log("Filter:", filter);
-    console.log(`Candidate count: ${normalizedCandidates.length}`);
+    // console.log("Filter:", filter);
+    // console.log(`Candidate count: ${normalizedCandidates.length}`);
   }
 
   return normalizedCandidates;

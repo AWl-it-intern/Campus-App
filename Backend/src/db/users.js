@@ -27,7 +27,7 @@ export async function insertUsers(UserData) {
     createdAt: new Date(),
   });
 
-  console.log("User inserted:", result.insertedId);
+  // console.log("User inserted:", result.insertedId);
 
   return result;
 }

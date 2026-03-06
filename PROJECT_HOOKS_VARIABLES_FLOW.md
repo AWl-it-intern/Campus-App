@@ -1,680 +1,388 @@
-# Campus Recruitment App: Hooks, Variables, Navigation, and Data Flow Reference
+# Campus Recruitment App: Hooks, Variables, and Data Flow Guide (Beginner Friendly)
 
-This file is a practical map of how naming is organized and how data flows through this project.
+This document helps you understand how data moves in this project and where each feature lives.
 
-Scope covered in this document:
-- Frontend routes, page connections, and navigation methods
-- All custom hooks and their variables/methods
-- Page-level state variables for pages with direct business logic
-- Frontend service to backend endpoint mapping
-- Backend route -> controller -> service -> DB method chain
-- Core business logic concepts and invariants
-
-## 1) Architecture Snapshot
-
-Current architecture is layered:
-- Frontend:
-  - `Pages` -> `Hooks` -> `services/*` -> REST API
-- Backend:
-  - `routes/*` -> `controllers/*` -> `services/*` -> `db/*` (MongoDB collections)
-
-Main backend collections:
-- `Candidate`
-- `Drives`
-- `Jobs`
-- `Panelist`
-- `Users`
-- `counters` (sequence/counter support)
+If you are new, start with these sections in order:
+1. Quick Mental Model
+2. Route to Hook Map
+3. Hook Cheat Sheet
+4. API Flow (Frontend to Backend)
+5. Beginner Practice Tasks
 
 ---
 
-## 2) Frontend Route and Page Connection Map
+## 1) Quick Mental Model
 
-| Route | Page Component | Auth Guard | Main Hook(s) | Main Data Source |
-|---|---|---|---|---|
-| `/login` | `LoginPage` | Public | None | `tempAuth.json` + localStorage |
-| `/candidate-dashboard` | `CandidateDashboard` | `candidate_auth` | `useCandidateDashboard` | Candidate API + localStorage |
-| `/candidate/application` | `Applicationform` | `candidate_auth` | `useCandidateApplicationForm` | Candidate API + localStorage |
-| `/HR/dashboard` | `HRDashboard` | `hr_auth` | `useHrDashboard` | Candidates/Panelists/Drives APIs |
-| `/HR/dashboard/Drives` | `DriveManagement` | `hr_auth` | `useDriveManagement` | Drives + Jobs APIs |
-| `/HR/dashboard/Drives/:driveId` | `DrivePage` | `hr_auth` | `useDrivePage` | Drive by id + related APIs |
-| `/HR/dashboard/Create-Job` | `CreateJob` | `hr_auth` | `useCreateJob`, `useKonamiConfetti` | Jobs + Candidates APIs |
-| `/HR/dashboard/Create-Users` | `CreateUsers` | `hr_auth` | `useCreateUsers` | Candidates + Jobs + Drives APIs |
-| `/HR/dashboard/Manage-Panelists` | `CreatePanelist` | `hr_auth` | `useCreatePanelist` | Panelists + Jobs + Candidates APIs |
-| `/HR/dashboard/drive/:driveId/job/:jobId/candidates` | `DriveCandidatesPage` | `hr_auth` | `useDriveCandidates` | Candidates + Drives + Jobs APIs |
-| `/HR/dashboard/Drive-Job-Scoreboard` | `DriveJobCandidateScoreboardPage` | `hr_auth` | `useDriveJobScoreboard` | Candidates + Drives + Jobs + Panelists APIs |
-| `/HR/dashboard/drive/:driveId/job/:jobId/scoreboard` | `DriveJobCandidateScoreboardPage` | `hr_auth` | `useDriveJobScoreboard` | Same as above |
-| `/HR/dashboard/Recruitment-Pipeline` | `RecruitmentPipeline` | `hr_auth` | None (page state) | Drives + Jobs APIs + localStorage templates |
-| `/HR/dashboard/Aptitude-Test-Management` | `AptitudeTestManagement` | `hr_auth` | None (page state) | Drives + Jobs + Candidates APIs |
-| `/HR/dashboard/Offer-Approvals` | `OfferApprovals` | `hr_auth` | None | UI-only mock data |
+Think of the app in two halves.
+
+Frontend flow:
+`Page -> Hook -> Service -> API`
+
+Backend flow:
+`Route -> Controller -> Service -> DB`
+
+When a button does not work, debug by following this chain in order.
 
 ---
 
-## 3) Navigation Methods Inventory
+## 2) Project Structure Map
 
-### 3.1 Router-level navigation (central)
-- `AppRoutes.jsx` defines page routing and guarded route groups.
-- `ProtectedRoute.jsx` checks localStorage (`candidate_auth` / `hr_auth`) and redirects to `/login`.
+### Frontend (UI + State)
+- `Frontend/src/Pages`:
+  - Screen-level components (Drive page, Candidate page, etc.)
+- `Frontend/src/hooks`:
+  - Reusable business logic per feature (`useCreateUsers`, `useDriveManagement`)
+- `Frontend/src/services`:
+  - API call functions (`fetchCandidates`, `createDrive`)
+- `Frontend/src/Routes`:
+  - Route definitions and auth guard
+- `Frontend/src/Components`:
+  - Reusable UI building blocks
 
-### 3.2 Global HR side navigation
-- `HrSlideDrawer.jsx`
-  - `MAIN_NAV_ITEMS`:
-    - Dashboard -> `/HR/dashboard`
-    - Drive Management -> `/HR/dashboard/Drives`
-    - Create Jobs -> `/HR/dashboard/Create-Job`
-    - Candidates -> `/HR/dashboard/Create-Users`
-    - Panelists -> `/HR/dashboard/Manage-Panelists`
-  - `FLOW_NAV_ITEMS`:
-    - Recruitment Pipeline -> `/HR/dashboard/Recruitment-Pipeline`
-    - Aptitude Tests -> `/HR/dashboard/Aptitude-Test-Management`
-    - Offer Approvals -> `/HR/dashboard/Offer-Approvals`
-    - Candidate Scoreboard -> `/HR/dashboard/Drive-Job-Scoreboard`
-  - `handleNavigate(path)` performs navigation and closes drawer.
-  - `handleLogout()` clears HR auth keys and routes to `/login`.
-
-### 3.3 Drive Management top section navigation
-- `SectionNavBar.jsx` (reusable top horizontal nav)
-  - Used in `DriveManagement.jsx`
-  - Items: `Home`, `Create Drive`, `Drives`
-  - Implemented via URL query param `view` (`home`, `create-drive`, `drives`) using `useSearchParams`.
-
-### 3.4 Flow-driven navigation inside drive details
-- `DriveJobBreakdown.jsx`
-  - Row click -> `/HR/dashboard/drive/:driveId/job/:jobName/candidates`
-- `DriveRecruitmentFlow.jsx`
-  - Stage actions navigate across:
-    - Drive Management
-    - Create Job
-    - Drive candidates
-    - Aptitude test management
-    - Panelist management
-    - Offer approvals
-
-### 3.5 Candidate navigation
-- `CandidateDashboard.jsx`
-  - View application -> `/candidate/application`
-- `useCandidateDashboard`
-  - `handleLogout()` clears candidate auth keys and routes to `/login`
-- `useCandidateApplicationForm`
-  - `handleSubmit()` routes to `/candidate-dashboard`
+### Backend (API + Data)
+- `Backend/src/routes`:
+  - URL endpoint registration
+- `Backend/src/controllers`:
+  - HTTP request/response handling
+- `Backend/src/services`:
+  - Use-case orchestration
+- `Backend/src/db`:
+  - MongoDB read/write logic
+- `Backend/src/db/helpers.js`:
+  - Core normalization and sync helpers
 
 ---
 
-## 4) Hooks Inventory (Variables, Purpose, Usage)
+## 3) Route -> Page -> Hook Map
 
-Note:
-- This section lists exact state/ref variable names and major derived/method names from each custom hook.
-- Purpose is included so naming patterns are clear.
+| Route | Page | Main Hook(s) | Why it exists |
+|---|---|---|---|
+| `/login` | `LoginPage` | None | Sets local auth flags for demo login |
+| `/candidate-dashboard` | `CandidateDashboard` | `useCandidateDashboard` | Candidate summary + notifications |
+| `/candidate/application` | `Applicationform` | `useCandidateApplicationForm` | Multi-step candidate application form |
+| `/HR/dashboard` | `HRDashboard` | `useHrDashboard` | Top-level HR metrics |
+| `/HR/dashboard/Drives` | `DriveManagement` | `useDriveManagement` | Drive CRUD + filtering |
+| `/HR/dashboard/Drives/:driveId` | `DrivePage` | `useDrivePage` | Drive details + job breakdown |
+| `/HR/dashboard/Create-Job` | `CreateJob` | `useCreateJob` | Job CRUD and assigned candidates |
+| `/HR/dashboard/Create-Users` | `CreateUsers` | `useCreateUsers` | Candidate CRUD, import, bulk actions |
+| `/HR/dashboard/Manage-Panelists` | `CreatePanelist` | `useCreatePanelist` | Panelist CRUD + scheduling |
+| `/HR/dashboard/drive/:driveId/job/:jobId/candidates` | `DriveCandidatesPage` | `useDriveCandidates` | Candidates for one drive-job pair |
+| `/HR/dashboard/Drive-Job-Scoreboard` | `DriveJobCandidateScoreboardPage` | `useDriveJobScoreboard` | Leaderboard view |
+| `/HR/dashboard/drive/:driveId/job/:jobId/scoreboard` | `DriveJobCandidateScoreboardPage` | `useDriveJobScoreboard` | Context mode leaderboard |
+| `/HR/dashboard/Recruitment-Pipeline` | `RecruitmentPipeline` | Page state + utils | Save/list/delete flow templates |
+| `/HR/dashboard/Aptitude-Test-Management` | `AptitudeTestManagement` | Page state | Aptitude dispatch flow |
+| `/HR/dashboard/Offer-Approvals` | `OfferApprovals` | None | UI-only approvals table |
 
-### 4.1 `useDriveManagement`
+---
 
-State variables:
-- `jobs`: all jobs loaded for drive creation/filtering.
-- `jobCount`: total jobs count.
-- `drives`: normalized drives list.
-- `drivesLoading`: drive fetch loading flag.
-- `drivesError`: drive fetch error message.
-- `newDrive`: create-drive form model (`DriveID`, `CollegeName`, `StartDate`, `EndDate`, `JobsOpening`, `Status`).
-- `selectedJob`: job filter value.
-- `searchTerm`: text filter.
-- `statusFilter`: status filter value.
-- `collegeFilter`: college filter value.
-- `isEditOpen`: edit modal visibility.
-- `editingDrive`: current drive being edited.
+## 4) Navigation Inventory
 
-Derived variables:
-- `uniqueColleges`: distinct colleges from `drives`.
-- `availableJobNames`: distinct job names from `jobs`.
-- `filteredDrives`: filtered + sorted drives.
-- `stats`: `{ totalCandidates, totalSelected, liveDrives, totalDrives }` from `filteredDrives`.
+### Auth Guard
+- `ProtectedRoute.jsx`
+- Uses localStorage key check:
+  - Candidate: `candidate_auth`
+  - HR: `hr_auth`
 
-Methods:
-- `loadJobs()`, `loadDrives()`
-- `handleCreateDrive()`
-- `handleDeleteDrive(driveToDelete)`
-- `openEditDrive(drive)`
-- `closeEditDrive()`
-- `saveDriveEdits(driveId, payload)`
+### Main HR Drawer
+- `Components/common/HrSlideDrawer.jsx`
+- Navigation groups:
+  - Core: Dashboard, Drives, Jobs, Candidates, Panelists
+  - Process: Pipeline, Aptitude, Offer Approvals, Candidate Scoreboard
 
-Normalization helpers in this hook:
-- `normalizeDrive`, `normalizeStatus`, `normalizeJobsOpening`, `normalizeDateForInput`, `normalizeCandidateIds`
+### In-page Navigation Pattern
+- Many pages use query param `view` with `useSearchParams`.
+- Example: `CreateUsers`, `CreateJob`, `DriveManagement`, `RecruitmentPipeline`.
 
-### 4.2 `useCreateJob`
+---
 
-State variables:
-- `jobs`, `jobsLoading`, `jobsError`
-- `candidates`
-- `newJob`: create job form (`JobID`, `JobName`)
-- `jobSearchTerm`
+## 5) Hook Cheat Sheet (What each hook controls)
 
-Derived variables:
-- `filteredJobs`: search-filtered/sorted jobs.
-- `candidateMap`: `Map(candidateId -> candidate object)`
+Use this section like a quick glossary.
 
-Methods:
-- `loadJobs()`
-- `handleCreateJob()`
-- `handleDeleteJob(jobToDelete)`
-- `getCandidatesForJob(job)`
-- `reloadJobs`
+### `useDriveManagement`
+Purpose:
+- Create/edit/delete drives, filter drives, calculate drive stats.
 
-### 4.3 `useCreateUsers`
+Important state:
+- `drives`, `jobs`, `newDrive`
+- `searchTerm`, `statusFilter`, `collegeFilter`
+- `isEditOpen`, `editingDrive`
 
-State/ref variables:
-- `fileInputRef`: hidden CSV input reference.
+Important actions:
+- `handleCreateDrive`
+- `handleDeleteDrive`
+- `saveDriveEdits`
+
+### `useCreateJob`
+Purpose:
+- Manage jobs and inspect assigned candidates per job.
+
+Important state:
+- `jobs`, `newJob`, `jobSearchTerm`
+
+Important actions:
+- `handleCreateJob`
+- `handleDeleteJob`
+- `getCandidatesForJob`
+
+### `useCreateUsers`
+Purpose:
+- Manage candidates, CSV import/export, drive/job assignment logic, candidate edits.
+
+Important state:
 - `candidates`, `jobs`, `drives`
-- `importing`: CSV import in-progress flag.
-- `newUser`: create candidate form (`name`, `email`, `college`, `AssignedJobs`).
+- `newUser`
 - `searchTerm`, `collegeFilter`, `jobFilter`
-- `isAssignOpen`
-- `assignCtx`: assignment modal context (`candidateId`, `candidateName`, `candidateEmail`, `filterKeys`, `filterBy`)
-- `isEditOpen`, `editingCandidate`
+- `isAssignOpen`, `isEditOpen`
 
-Derived variables:
-- `uniqueColleges`
-- `uniqueJobs`
-- `drivesMap`: drive lookup map by id/code.
-- `filteredCandidates`: filtered + sorted candidates.
+Important actions:
+- `handleCreateCandidate`
+- `handleDeleteCandidate`
+- `handleDeleteCandidatesBulk`
+- `handleAssigned`
+- `saveCandidateEdits`
+- `onFileChange` (CSV import)
 
-Methods:
-- `loadCandidates()`, `loadJobs()`, `loadDrives()`
-- `handleCreateCandidate()`
-- `handleDeleteCandidate(candidateId)`
-- `onOpenAssign(candidate)`
-- `handleAssigned({ jobs, candidateId, mode })`
-- `getDriveName(driveId)`
-- `exportCandidatesToCsv()`
-- `onImportClick()`
-- `onFileChange(event)` (CSV parse + bulk API insert)
-- `openEditCandidate(candidate)`, `closeEditCandidate()`, `saveCandidateEdits(candidateId, payload)`
+### `useCreatePanelist`
+Purpose:
+- Panelist CRUD, assign panelist jobs, schedule interview rounds.
 
-### 4.4 `useCreatePanelist`
+Important state:
+- `panelists`, `fetchedJobs`, `fetchedCandidates`
+- `selectedPanelist`
+- `selectedJobsForAssignment`
+- `scheduleData`
 
-State variables:
-- Candidate/job fetch side:
-  - `fetchedCandidates`, `candidatesLoading`
-  - `fetchedJobs`, `jobsLoading`
-  - `fetchError`
-- Panelist side:
-  - `panelists`, `panelistsLoading`, `panelistsError`
-  - `newPanelist`
-  - `searchTerm`, `expertiseFilter`, `assignmentFilter`
-- Modal side:
-  - `showAssignModal`, `showScheduleModal`
-  - `selectedPanelist`
-  - `selectedJobsForAssignment`
-  - `scheduleData` (`candidateId`, `type`, `date`, `time`)
+Important actions:
+- `handleCreatePanelist`
+- `handleDeletePanelist`
+- `saveAssignments`
+- `scheduleRound`
 
-Derived variables:
-- `uniqueExpertise`
-- `filteredPanelists`
+### `useDrivePage`
+Purpose:
+- Build drive detail page data.
 
-Methods:
-- `loadCandidates()`, `loadJobs()`, `loadPanelists()`
-- `handleCreatePanelist()`
-- `handleDeletePanelist(panelistToDelete)`
-- `handleUpdatePanelist(panelistId, updateData)`
-- `openAssignModal(panelist)`, `toggleJobSelection(jobName)`, `saveAssignments()`
-- `openScheduleModal(panelist)`, `scheduleRound()`
-- `getCandidateName(id)`
-
-### 4.5 `useDrivePage`
-
-State variables:
-- `drive`, `candidates`, `panelists`, `jobs`
+Important output:
+- `drive`
+- `jobRows` (candidate and panelist summary per job)
 - `loading`, `error`
 
-Derived variables:
-- `driveScopedCandidates`: only candidates mapped to current drive.
-- `jobRows`: per job object containing:
-  - `jobName`
-  - `candidateCount`
-  - `panelists` (mapped by assignment/expertise/schedule heuristics)
+### `useDriveCandidates`
+Purpose:
+- Build candidate list for one drive+job context.
 
-Methods:
-- internal fetch effect (`fetchDrivePageData`)
+Important output:
+- `filteredCandidates`
+- `splitAssignedJobs`
+- `reload`
 
-### 4.6 `useDriveCandidates`
+### `useDriveJobScoreboard`
+Purpose:
+- Build leaderboard rows for selected drive and job.
 
-State variables:
+Important output:
+- `rows`
+- `driveLabel`
 - `loading`, `error`
-- `candidates`, `drives`, `jobs`
-- `refreshToken` (manual reload trigger)
 
-Derived variables:
-- `drivesMap`
-- `filteredCandidates` (drive + job scoped)
+### `useHrDashboard`
+Purpose:
+- Fetch high-level counts for HR dashboard.
 
-Methods:
-- `getDriveName(driveId)`
-- `splitAssignedJobs(candidate)`
-- `reload()` increments `refreshToken`
+### `useCandidateApplicationForm`
+Purpose:
+- Multi-step form control, validation, and submit behavior.
 
-### 4.7 `useDriveJobScoreboard`
+### `useCandidateDashboard`
+Purpose:
+- Candidate dashboard card data and notification controls.
 
-State variables:
-- `loading`, `error`
-- `candidates`, `drives`, `jobs`, `panelists`
+### `useKonamiConfetti`
+Purpose:
+- Hidden keyboard sequence effect.
 
-Derived variables:
-- `selectedDrive`, `selectedJob`
-- `assignedCandidateIds`
-- `rows`: scoreboard rows with:
-  - candidate identity fields
-  - mapped panelists
-  - `aptitudeScore`, `gdScore`, `piScore`
-  - status
-- `driveLabel`, `jobLabel`
-
-Methods:
-- internal fetch effect + score derivation utilities.
-
-### 4.8 `useHrDashboard`
-
-State variables:
-- `candidateCount`
-- `panelistCount`
-- `totalDriveCount`
-
-Method:
-- fetches counts using `fetchCandidates`, `fetchPanelists`, `fetchDrives`
-
-### 4.9 `useCandidateApplicationForm`
-
-State variables:
-- `activeStep`
-- `isLoading`
-- `formData` (sections: `personal`, `academics`, `experience`, `resume`, `meta`)
-
-Derived variable:
-- `currentStepIsValid`
-
-Methods:
-- `updatePersonalField`, `updateAcademicsField`, `updateExperienceField`
-- `addPgDegree`, `removePgDegree`, `updatePgDegree`
-- `handleResumeInput`, `handleResumeDrop`
-- `handleNext`, `handlePrevious`, `handleStepClick`
-- `handleSubmit` (saves application to localStorage and navigates)
-
-### 4.10 `useCandidateDashboard`
-
-State/ref variables:
-- `isLoading`, `loadError`
-- `isNotificationsOpen`
-- `notificationsRef`
-- `dashboardData` (status card, interview card, progress, quick info, notifications)
-
-Derived variables:
-- `firstName`
-- `gdProgress`
-- `unreadNotificationsCount`
-
-Methods:
-- `handleLogout`
-- `toggleNotifications`
-- `openNotifications`
-- `closeNotifications`
-- `getNotificationAccent(type)`
-
-### 4.11 `useKonamiConfetti`
-
-Ref variable:
-- `sequenceRef`: keypress buffer for Konami sequence matching.
-
-Behavior:
-- listens for keydown sequence and spawns confetti elements.
-
-### 4.12 `useToast`
-
-Variable:
-- `context` from `ToastContext`.
-
-Behavior:
-- Returns context methods if provider exists.
-- Fallback methods (`show`, `success`, `error`, `info`, `warning`) call `window.alert`.
+### `useToast`
+Purpose:
+- Access toast context with alert fallback.
 
 ---
 
-## 5) Page-Level Variable Inventory (Data-heavy Pages)
+## 6) Pages with heavy local state (No dedicated custom hook)
 
-These pages contain direct business/UI orchestration without a dedicated custom hook.
+### `RecruitmentPipeline`
+Handles:
+- Drive/job selectors
+- Flow stage selection
+- Save/delete/list recruitment flow templates
 
-### 5.1 `RecruitmentPipeline`
+Uses utility:
+- `utils/recruitmentFlowTemplates.js`
 
-State variables:
-- `drives`, `jobs`
-- `loading`, `loadError`
-- `selectedDriveId`, `selectedJobName`
-- `selectedFlowStages`
-- `savedTemplates`
+### `AptitudeTestManagement`
+Handles:
+- Candidate target filtering
+- Aptitude link dispatch queue
+- Selection and local log state
 
-Derived variables:
-- `selectedDrive`
-- `availableJobs`
+### `DriveCandidatesPage`
+Handles:
+- CSV import for a specific drive-job
+- Clickable candidate rows
+- Candidate detail modal card
 
-Methods:
-- `toggleFlowStage(stageName)`
-- `handleSaveFlowTemplate()`
-
-Business usage:
-- Saves drive-job flow templates to localStorage via `upsertRecruitmentFlowTemplate`.
-
-### 5.2 `AptitudeTestManagement`
-
-State variables:
-- Data sets: `drives`, `jobs`, `candidates`
-- Flags: `loading`, `error`
-- Selection/filter: `selectedDriveId`, `selectedJobName`, `searchText`
-- Dispatch workflow: `aptitudeLink`, `selectedCandidateIds`, `dispatchLog`
-
-Derived variables:
-- `selectedDrive`
-- `availableJobs`
-- `targetCandidates`
-- `selectedCandidateSet`
-- `allVisibleSelected`
-
-Methods:
-- `toggleCandidateSelection(candidateKey)`
-- `toggleSelectAllVisible()`
-- `handleSendAptitudeLink()`
-
-Business usage:
-- Queues aptitude link dispatch records in UI state (`dispatchLog`), no backend write yet.
-
-### 5.3 `DriveCandidatesPage`
-
-State/ref variables:
-- `fileInputRef`
-- `importing`
-- URL/context values: `driveId`, `jobId`, `jobName`, `collegeName`
-
-Derived variables:
-- `flowTemplate`
-- `flowStages`
-
-Methods:
-- `handleImportClick()`
-- `handleFileChange(event)` uses CSV parser and `bulkInsertCandidates` with forced drive/job assignment.
-
-### 5.4 `DriveJobCandidateScoreboardPage`
-
-State variables:
-- `drives`, `jobs`
-- `selectorsLoading`, `selectorsError`
-- `selectedDriveId`, `selectedJobName`
-
-Derived variables:
-- `selectedDrive`
-- `availableJobs`
-- `effectiveDriveId`
-- `effectiveJobName`
-
-Usage:
-- Delegates row-level scoreboard assembly to `useDriveJobScoreboard`.
-
-### 5.5 `LoginPage`
-
-State variables:
-- `activeTab`
-- `email`
-- `password`
-
-Constants/vars:
-- `ROLE_TABS`
-- `hrAdmin` and `candidateAuth` from `tempAuth.json`
-
-Business usage:
-- Writes role auth flags to localStorage and routes accordingly.
+### `DriveJobCandidateScoreboardPage`
+Handles:
+- Drive/job selector UI
+- Passes selected context into `useDriveJobScoreboard`
 
 ---
 
-## 6) Frontend Services to Backend Endpoints
+## 7) Frontend Service -> Backend Endpoint Map
 
-| Frontend Service Function | HTTP | Endpoint |
+| Frontend service function | HTTP | Endpoint |
 |---|---|---|
-| `fetchCandidates({ limit })` | GET | `/print-candidates?limit=...` |
-| `createCandidate(payload)` | POST | `/candidate` |
-| `deleteCandidate(candidateId)` | DELETE | `/candidate/:id` |
-| `bulkInsertCandidates(candidates, options)` | POST | `/candidate/bulk` |
-| `updateCandidate(candidateId, payload)` | PATCH | `/candidate/:id` |
-| `fetchDrives({ limit })` | GET | `/print-drives?limit=...` |
-| `createDrive(payload)` | POST | `/drive` |
-| `deleteDrive(driveId)` | DELETE | `/drive/:id` |
-| `fetchDriveById(driveId)` | GET | `/drive/:id` |
-| `updateDrive(driveId, payload)` | PUT | `/drive/:id` |
-| `fetchJobs({ limit })` | GET | `/print-jobs?limit=...` |
-| `createJob(payload)` | POST | `/job` |
-| `deleteJob(jobId)` | DELETE | `/job/:id` |
-| `fetchPanelists({ limit })` | GET | `/print-panelists?limit=...` |
-| `createPanelist(payload)` | POST | `/panelist` |
-| `updatePanelist(panelistId, payload)` | PUT | `/panelist/:id` |
-| `deletePanelist(panelistId)` | DELETE | `/panelist/:id` |
+| `fetchCandidates` | GET | `/print-candidates` |
+| `createCandidate` | POST | `/candidate` |
+| `bulkInsertCandidates` | POST | `/candidate/bulk` |
+| `updateCandidate` | PATCH | `/candidate/:id` |
+| `deleteCandidate` | DELETE | `/candidate/:id` |
+| `fetchDrives` | GET | `/print-drives` |
+| `fetchDriveById` | GET | `/drive/:id` |
+| `createDrive` | POST | `/drive` |
+| `updateDrive` | PUT | `/drive/:id` |
+| `deleteDrive` | DELETE | `/drive/:id` |
+| `fetchJobs` | GET | `/print-jobs` |
+| `createJob` | POST | `/job` |
+| `deleteJob` | DELETE | `/job/:id` |
+| `fetchPanelists` | GET | `/print-panelists` |
+| `createPanelist` | POST | `/panelist` |
+| `updatePanelist` | PUT | `/panelist/:id` |
+| `deletePanelist` | DELETE | `/panelist/:id` |
 
 ---
 
-## 7) Backend API Chain Map (Route -> Controller -> Service -> DB)
+## 8) Backend Chain Map (Route -> Controller -> Service -> DB)
 
-### Candidate APIs
-- `POST /candidate`
-  - `insertCandidateHandler` -> `createCandidate` -> `insertCandidate`
-  - Collections touched: `Candidate`, `Drives`, `Jobs`, `counters`
-- `POST /candidate/bulk`
-  - `insertManyCandidatesHandler` -> `createManyCandidates` -> `insertManyCandidates`
-  - Collections touched: `Candidate`, `Drives`, `Jobs`, `counters`
-- `GET /print-candidates`
-  - `printCandidatesHandler` -> `listCandidates` -> `printCandidates`
-  - Collection: `Candidate`
-- `PATCH /candidate/:id`
-  - `editcandidateHandler` -> `updateCandidate` -> `editcandidate`
-  - Collections touched: `Candidate`, `Drives`, `Jobs`
-- `DELETE /candidate/:id`
-  - `deleteCandidateHandler` -> `removeCandidate` -> `deleteCandidate`
-  - Collections touched (transaction): `Candidate`, `Jobs`, `Drives`, `Panelist`
-
-### Drive APIs
-- `POST /drive`
-  - `insertDriveHandler` -> `createDrive` -> `insertDrive`
-  - Collections: `Drives`, `Jobs`
-- `GET /drive/:id`
-  - `getDriveByIdHandler` -> `getDrive` -> `getDriveById`
-  - Collections: `Drives`, `Candidate` (for derived candidate membership)
-- `PUT /drive/:id`
-  - `updateDriveHandler` -> `updateDrive` -> `editDrive`
-  - Collections: `Drives`, `Jobs`, `Candidate`
-- `DELETE /drive/:id`
-  - `deleteDriveHandler` -> `removeDrive` -> `deleteDrive`
-  - Collections (transaction): `Drives`, `Jobs`, `Candidate`
-- `GET /print-drives`
-  - `printDrivesHandler` -> `listDrives` -> `printDrives`
-  - Collections: `Drives`, `Candidate` (derived stats sync)
-
-### Job APIs
-- `POST /job`
-  - `insertJobHandler` -> `createJob` -> `insertJob`
-  - Collection: `Jobs`
-- `DELETE /job/:id`
-  - `deleteJobHandler` -> `removeJob` -> `deleteJob`
-  - Collection: `Jobs`
-- `GET /print-jobs`
-  - `printJobsHandler` -> `listJobs` -> `printJobs`
-  - Collection: `Jobs`
-
-### Panelist APIs
-- `POST /panelist`
-  - `insertPanelistHandler` -> `createPanelist` -> `insertPanelist`
-  - Collection: `Panelist`
-- `PUT /panelist/:id`
-  - `updatePanelistHandler` -> `updatePanelistRecord` -> `updatePanelist`
-  - Collection: `Panelist`
-- `DELETE /panelist/:id`
-  - `deletePanelistHandler` -> `removePanelist` -> `deletePanelist`
-  - Collection: `Panelist`
-- `GET /print-panelists`
-  - `printPanelistsHandler` -> `listPanelists` -> `printPanelists`
-  - Collection: `Panelist`
-
-### User API
-- `POST /Users`
-  - `insertUsersHandler` -> `createUser` -> `insertUsers`
-  - Collection: `Users`
-
----
-
-## 8) Database Field Naming and Canonical Shapes
-
-### Candidate (canonical in current code)
-- `CandidateID` (generated sequence like `CND001`)
-- `name`, `email`, `college`
-- `AssignedJobs` (array)
-- `driveId` (primary normalized drive reference; ObjectId string)
-- `ApplicationStatus`
-- `AssignedPanelist` (array)
-- score/status-related fields as needed (`AptitudeScore`, `GDScore`, etc.)
-
-Legacy fields recognized and normalized:
-- `AssignedJob`
-- `DriveID`, `AssignedDriveId`, `assignedDriveId`
+### Candidates
+- `/candidate` -> `insertCandidateHandler` -> `createCandidate` -> `db/candidate/create.js`
+- `/candidate/bulk` -> `insertManyCandidatesHandler` -> `createManyCandidates` -> `db/candidate/create.js`
+- `/print-candidates` -> `printCandidatesHandler` -> `listCandidates` -> `db/candidate/read.js`
+- `/candidate/:id` PATCH -> `editcandidateHandler` -> `updateCandidate` -> `db/candidate/update.js`
+- `/candidate/:id` DELETE -> `deleteCandidateHandler` -> `removeCandidate` -> `db/candidate/delete.js`
 
 ### Drives
-- `DriveID`
-- `CollegeName`
-- `StartDate`, `EndDate`
-- `JobsOpening` (array)
-- `Status`
-- `CandidateIDs` (derived canonical candidate keys)
-- `Selected`
-- `NumberOfCandidates` is derived, not trusted as source-of-truth
-
-Legacy recognized:
-- `driveId`, `driveID`, `collegeName`, `jobsOpening`, `status`, `candidateIDs`, `candidateIds`, `selected`
+- `/drive` POST -> `insertDriveHandler` -> `createDrive` -> `db/drive.js`
+- `/drive/:id` GET -> `getDriveByIdHandler` -> `getDrive` -> `db/drive.js`
+- `/drive/:id` PUT -> `updateDriveHandler` -> `updateDrive` -> `db/drive.js`
+- `/drive/:id` DELETE -> `deleteDriveHandler` -> `removeDrive` -> `db/drive.js`
+- `/print-drives` GET -> `printDrivesHandler` -> `listDrives` -> `db/drive.js`
 
 ### Jobs
+- `/job` POST -> `insertJobHandler` -> `createJob` -> `db/job.js`
+- `/job/:id` DELETE -> `deleteJobHandler` -> `removeJob` -> `db/job.js`
+- `/print-jobs` GET -> `printJobsHandler` -> `listJobs` -> `db/job.js`
+
+### Panelists
+- `/panelist` POST -> `insertPanelistHandler` -> `createPanelist` -> `db/panelist.js`
+- `/panelist/:id` PUT -> `updatePanelistHandler` -> `updatePanelistRecord` -> `db/panelist.js`
+- `/panelist/:id` DELETE -> `deletePanelistHandler` -> `removePanelist` -> `db/panelist.js`
+- `/print-panelists` GET -> `printPanelistsHandler` -> `listPanelists` -> `db/panelist.js`
+
+### Users
+- `/Users` POST -> `insertUsersHandler` -> `createUser` -> `db/users.js`
+
+---
+
+## 9) Important Business Rules (Beginner must know)
+
+1. Candidate IDs are generated (`CND###`) using counter logic.
+2. Legacy fields are normalized to canonical names.
+3. Candidate, drive, and job mappings are synchronized after changes.
+4. Deletions clean cross-entity references.
+5. Some features are localStorage-driven (for example recruitment flow templates).
+6. Login/auth in this project is demo-level localStorage auth.
+
+---
+
+## 10) Canonical Data Field Names
+
+### Candidate
+- `CandidateID`, `name`, `email`, `college`
+- `AssignedJobs` (array)
+- `driveId`
+
+### Drive
+- `DriveID`, `CollegeName`, `StartDate`, `EndDate`
+- `JobsOpening` (array)
+- `Status`
+- `CandidateIDs`
+
+### Job
 - `JobID`, `JobName`
-- `assignedCandidates` (candidate objectId strings)
-- `Drive` object map (`Drive.<DriveID> = CollegeName`)
-- `driveObjectIds` (list of linked drive objectId strings)
-- `assignedPanelist` (array)
+- `assignedCandidates` (array)
+- `Drive` (map)
 
 ### Panelist
 - `name`, `email`, `designation`, `expertise`
 - `assignedJobs` (array)
-- `scheduledRounds` (array of scheduling objects)
-
-### Users
-- `email`, `password` (if present in payload), plus custom fields
-- `Role` forced to `"Candidate"` on insert
+- `scheduledRounds` (array)
 
 ---
 
-## 9) Core Business Logic Concepts Implemented
+## 11) LocalStorage Keys Used
 
-### 9.1 Candidate ID sequencing
-- Maintained via `counters` collection (`candidateId` sequence).
-- `getNextSequence` and `formatCandidateId` generate `CND###`.
-- Includes cache and max-existing reconciliation to avoid collisions.
+Auth keys:
+- `candidate_auth`
+- `candidate_name`
+- `candidate_email`
+- `hr_auth`
+- `hr_email`
 
-### 9.2 Legacy-to-canonical normalization
-- Helper functions normalize mixed old/new field names.
-- Output contracts always move toward canonical fields (for example `AssignedJobs`, `driveId`, `CandidateIDs`).
-- Prevents UI/API breakage during schema evolution.
-
-### 9.3 Cross-entity synchronization
-- Candidate <-> Drive:
-  - Candidate drive references update `Drives.CandidateIDs`.
-  - Recalculation ensures drive candidate counts are derived from actual assignments.
-- Candidate <-> Job:
-  - Assigned job names update `Jobs.assignedCandidates`.
-- Drive <-> Job:
-  - `linkJobsToDrive` maintains `Jobs.Drive` mapping and `driveObjectIds`.
-
-### 9.4 Transactional deletion safety
-- Candidate deletion uses session transaction:
-  - removes candidate
-  - de-links jobs
-  - de-links drives
-  - removes panelist scheduled rounds for candidate
-- Drive deletion uses session transaction:
-  - deletes drive
-  - cleans job drive mappings
-  - clears candidate drive refs
-
-### 9.5 Derived stats rather than trusting stale counters
-- Drive candidate count is recalculated from candidate assignment queries.
-- `NumberOfCandidates`/legacy count fields are unset when recalculation occurs.
-
-### 9.6 Filtering and sorting conventions
-- Most list views apply:
-  - lowercase comparison for case-insensitive match
-  - deterministic sort (`localeCompare`, numeric-aware when IDs include numbers)
-- Candidate sorting uses `candidateSortKey` based on `CND` numeric suffix.
-
-### 9.7 Recruitment flow templates
-- Stored in localStorage (`recruitment_flow_templates_v1`).
-- Keyed by `driveRef::jobName`.
-- Used by:
-  - `RecruitmentPipeline` (create/update)
-  - `DriveCandidatesPage` and candidate dashboard logic (resolve flow)
+Feature keys:
+- `recruitment_flow_templates_v1`
+- `aptitude_dispatch_log_v1`
+- `aptitude_dispatch_counter_v1`
 
 ---
 
-## 10) Naming Organization Patterns
+## 12) Naming Patterns You Should Follow
 
-Patterns used consistently across project:
-- Hook naming:
-  - `use<Entity>` or `use<Feature>` for domain hooks.
-- Loading/error flags:
-  - `*Loading`, `*Error` (for example `drivesLoading`, `panelistsError`).
-- Form models:
-  - `new<Entity>` (for example `newDrive`, `newJob`, `newUser`, `newPanelist`).
-- UI modal booleans:
-  - `is*Open` or `show*Modal`.
-- Handlers:
-  - `handleCreate*`, `handleDelete*`, `handleUpdate*`, `open*`, `close*`.
-- Derived collections:
-  - `filtered*`, `unique*`, `available*`, `selected*`.
-- Backend layering names:
-  - Controller: `*Handler`
-  - Service: semantic verbs (`create*`, `remove*`, `list*`, `update*`)
-  - DB: persistence-centric names (`insert*`, `print*`, `delete*`, `edit*`)
+State naming:
+- loading flags: `*Loading`
+- error messages: `*Error`
+- selected item: `selected*`
+- filtered lists: `filtered*`
+
+Function naming:
+- mutate/create: `handleCreate*`
+- update: `handleUpdate*`, `save*`
+- delete: `handleDelete*`
+- open/close UI: `open*`, `close*`
 
 ---
 
-## 11) End-to-End Data Flow Examples
+## 13) How to Debug a Feature Quickly
 
-### 11.1 Create Drive
-1. UI (`DriveFormCard`) updates `newDrive` via `useDriveManagement`.
-2. `handleCreateDrive` validates and calls frontend `createDrive`.
-3. Backend `POST /drive` -> controller -> service -> `insertDrive`.
-4. DB writes to `Drives`, then links listed jobs via `linkJobsToDrive`.
-5. Hook reloads drives/jobs and UI re-renders.
-
-### 11.2 Bulk Import Candidates for a Drive-Job
-1. `DriveCandidatesPage` reads CSV via `parseCsvCandidates`.
-2. Calls `bulkInsertCandidates(parsed, { forceDriveId, forceJobName })`.
-3. Backend `POST /candidate/bulk` -> `insertManyCandidates`.
-4. DB writes candidate rows with generated `CandidateID`.
-5. Post-insert sync updates `Drives.CandidateIDs` and `Jobs.assignedCandidates`.
-6. Page calls `reload()` from `useDriveCandidates`.
-
-### 11.3 Update Candidate Assignment
-1. `EditCandidateModal` saves through `saveCandidateEdits`.
-2. Frontend calls `PATCH /candidate/:id`.
-3. Backend `editcandidate` updates payload, normalizes jobs/drives.
-4. Sync operations update `Jobs` and `Drives` memberships.
-
-### 11.4 Drive Scoreboard Read Flow
-1. `DriveJobCandidateScoreboardPage` chooses drive/job.
-2. `useDriveJobScoreboard` fetches candidates, drives, jobs, panelists.
-3. Hook filters by drive and job match, builds row objects.
-4. UI table renders scores, panelist mappings, and status.
+Use this checklist:
+1. Confirm route and page are correct.
+2. Check page calls correct hook method.
+3. Check hook calls correct service function.
+4. Check service endpoint and HTTP method.
+5. Check backend route/controller/service/db chain.
+6. Check DB helper side-effects and field normalization.
 
 ---
 
-## 12) Important Current Boundaries
+## 14) Beginner Practice Tasks
 
-- Auth is localStorage-based (demo-level), not secure production auth.
-- Recruitment flow templates are localStorage-based, not server persisted.
-- Some pages are intentionally UI-only (`OfferApprovals`) and contain placeholder metrics.
-- Legacy field support exists in DB logic; canonical field usage should be preferred for new code.
+1. Trace candidate creation end-to-end from UI to DB.
+2. Trace drive deletion and list all affected collections.
+3. Add one new field in candidate edit flow (frontend + backend).
+4. Add one filter in a list page and follow it through hook derived state.
 
+---
+
+## 15) One-line Summary
+
+If you understand `Page -> Hook -> Service -> Route -> Controller -> Service -> DB`, you can understand and safely change this project.

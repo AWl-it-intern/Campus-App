@@ -2,11 +2,11 @@ import { Building2, Mail, Briefcase, MapPin, Pencil } from "lucide-react";
 
 export const UserTableRow = ({
   candidate,
+  candidateKey,
+  isSelected = false,
+  onToggleSelect,
   getDriveName,
   colors,
-  deleteCandidate,
-  assignJob,
-  onOpenAssign,
   onEdit,
 }) => {
   const jobList = Array.isArray(candidate.AssignedJobs)
@@ -14,10 +14,18 @@ export const UserTableRow = ({
     : [];
 
   const hasMultipleJobs = jobList.length > 1;
-  const driveName = getDriveName ? getDriveName(candidate.driveId) : null;
+  const driveName = getDriveName ? getDriveName(candidate.driveId || candidate.DriveID) : null;
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+      <td className="px-6 py-4 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect?.(candidateKey)}
+        />
+      </td>
+
       <td className="px-6 py-4 text-sm text-gray-700 font-mono">
         {candidate.CandidateID || "-"}
       </td>
@@ -97,14 +105,7 @@ export const UserTableRow = ({
         </div>
       </td>
 
-      <td className="px-6 py-4 flex gap-2">
-        <button
-          onClick={() => (onOpenAssign ? onOpenAssign(candidate) : assignJob?.(candidate._id))}
-          className="px-3 py-1 rounded-lg text-sm text-black transition cursor-pointer"
-          style={{ backgroundColor: colors.marigoldFlame }}
-        >
-          Assign Job
-        </button>
+      <td className="px-6 py-4">
         <button
           onClick={() => onEdit?.(candidate)}
           className="px-3 py-1 rounded-lg text-sm text-white transition cursor-pointer"
@@ -113,12 +114,6 @@ export const UserTableRow = ({
           <span className="inline-flex items-center gap-1">
             <Pencil size={14} /> Edit
           </span>
-        </button>
-        <button
-          onClick={() => deleteCandidate(candidate._id)}
-          className="px-3 py-1 bg-red-400 text-white rounded-lg text-sm hover:bg-red-600 transition-colors cursor-pointer"
-        >
-          Delete
         </button>
       </td>
     </tr>

@@ -9,6 +9,14 @@ const safeLower = (value) => safeText(value).toLowerCase();
 const toTemplateKey = (driveRef, jobName) =>
   `${safeLower(driveRef) || FLOW_JOB_WILDCARD}::${safeLower(jobName)}`;
 
+const splitTemplateKey = (key) => {
+  const [driveRefPart = "", jobNamePart = ""] = String(key || "").split("::");
+  return {
+    driveRef: safeLower(driveRefPart),
+    jobName: safeLower(jobNamePart),
+  };
+};
+
 const getStorage = () =>
   typeof window !== "undefined" ? window.localStorage : null;
 
@@ -47,6 +55,7 @@ export function upsertRecruitmentFlowTemplate({
   driveRef,
   driveLabel,
   jobName,
+  jobId,
   stages = [],
 }) {
   const normalizedJobName = safeText(jobName);
@@ -59,13 +68,28 @@ export function upsertRecruitmentFlowTemplate({
   const nextTemplate = {
     driveRef: normalizedDriveRef,
     driveLabel: safeText(driveLabel),
+    jobId: safeText(jobId),
     jobName: normalizedJobName,
     stages: normalizedStages,
     updatedAt: new Date().toISOString(),
   };
 
   const templates = readRecruitmentFlowTemplates();
-  templates[toTemplateKey(normalizedDriveRef, normalizedJobName)] = nextTemplate;
+  const nextKey = toTemplateKey(normalizedDriveRef, normalizedJobName);
+
+  // Remove stale duplicates for same drive+job that may exist under legacy keys.
+  Object.keys(templates).forEach((key) => {
+    if (key === nextKey) return;
+    const template = templates[key];
+    const { driveRef: keyDriveRef, jobName: keyJobName } = splitTemplateKey(key);
+    const existingDriveRef = safeLower(template?.driveRef || keyDriveRef);
+    const existingJobName = safeLower(template?.jobName || keyJobName);
+    if (existingDriveRef === safeLower(normalizedDriveRef) && existingJobName === safeLower(normalizedJobName)) {
+      delete templates[key];
+    }
+  });
+
+  templates[nextKey] = nextTemplate;
   // Cleanup legacy wildcard template for this job; templates are now strictly drive+job scoped.
   delete templates[toTemplateKey(FLOW_JOB_WILDCARD, normalizedJobName)];
   writeRecruitmentFlowTemplates(templates);
@@ -73,10 +97,64 @@ export function upsertRecruitmentFlowTemplate({
   return nextTemplate;
 }
 
+export function deleteRecruitmentFlowTemplate({ driveRef, jobName, driveLabel }) {
+  const normalizedDriveRef = safeText(driveRef);
+  const normalizedJobName = safeText(jobName);
+  const normalizedDriveLabel = safeText(driveLabel);
+
+  if (!normalizedJobName || (!normalizedDriveRef && !normalizedDriveLabel)) {
+    return false;
+  }
+
+  const templates = readRecruitmentFlowTemplates();
+  const keysToDelete = new Set();
+  const targetDriveRefLower = safeLower(normalizedDriveRef);
+  const targetDriveLabelLower = safeLower(normalizedDriveLabel);
+  const targetJobNameLower = safeLower(normalizedJobName);
+
+  Object.entries(templates).forEach(([key, template]) => {
+    const { driveRef: keyDriveRef, jobName: keyJobName } = splitTemplateKey(key);
+    const rowDriveRef = safeLower(template?.driveRef || keyDriveRef);
+    const rowDriveLabel = safeLower(template?.driveLabel);
+    const rowJobName = safeLower(template?.jobName || keyJobName);
+
+    if (rowJobName !== targetJobNameLower) return;
+
+    const driveMatches =
+      (targetDriveRefLower && rowDriveRef === targetDriveRefLower) ||
+      (targetDriveLabelLower && rowDriveLabel === targetDriveLabelLower);
+
+    if (driveMatches || keyDriveRef === FLOW_JOB_WILDCARD) {
+      keysToDelete.add(key);
+    }
+  });
+
+  if (keysToDelete.size === 0) {
+    return false;
+  }
+
+  keysToDelete.forEach((key) => {
+    delete templates[key];
+  });
+  writeRecruitmentFlowTemplates(templates);
+  return true;
+}
+
 export function listRecruitmentFlowTemplates() {
-  const templates = Object.values(readRecruitmentFlowTemplates() || {}).filter(
-    (template) => safeText(template?.driveRef) !== FLOW_JOB_WILDCARD,
-  );
+  const templates = Object.entries(readRecruitmentFlowTemplates() || {})
+    .map(([key, template]) => {
+      const { driveRef: keyDriveRef, jobName: keyJobName } = splitTemplateKey(key);
+      return {
+        ...template,
+        driveRef: safeText(template?.driveRef || keyDriveRef),
+        jobName: safeText(template?.jobName || keyJobName),
+      };
+    })
+    .filter((template) => {
+      const driveRef = safeText(template?.driveRef);
+      const jobName = safeText(template?.jobName);
+      return Boolean(jobName) && Boolean(driveRef) && driveRef !== FLOW_JOB_WILDCARD;
+    });
   const deduped = new Map();
 
   templates.forEach((template) => {

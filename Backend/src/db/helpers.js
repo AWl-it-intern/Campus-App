@@ -600,10 +600,13 @@ export async function resolveDriveDocsByReferences(
 
 export function buildCandidateDriveFields(primaryDrive = null) {
   if (!primaryDrive?._id) {
-    return { driveId: "" };
+    return { driveId: "", DriveID: "" };
   }
 
-  return { driveId: String(primaryDrive._id) };
+  return {
+    driveId: String(primaryDrive._id),
+    DriveID: String(primaryDrive.DriveID || "").trim(),
+  };
 }
 
 export function hasDriveReferenceKeys(payload = {}) {

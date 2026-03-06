@@ -69,7 +69,7 @@ export async function insertJob(jobData) {
     });
 
     if (result.acknowledged) {
-      console.log("Job inserted:", result.insertedId);
+      // console.log("Job inserted:", result.insertedId);
     }
 
     return result;
@@ -91,7 +91,7 @@ export async function printJobs(limit = 50, debug = false) {
   const normalizedJobs = jobs.map((job) => normalizeJobPayload(job));
 
   if (debug) {
-    console.log(`Job collection | Count: ${normalizedJobs.length}`);
+    // console.log(`Job collection | Count: ${normalizedJobs.length}`);
   }
 
   return normalizedJobs;
@@ -101,7 +101,7 @@ export async function deleteJob(id) {
   const db = getDB();
   const result = await db.collection("Jobs").deleteOne({ _id: new ObjectId(id) });
 
-  console.log("Job deleted:", result.deletedCount);
+  // console.log("Job deleted:", result.deletedCount);
 
   return result;
 }

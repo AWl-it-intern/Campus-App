@@ -195,7 +195,7 @@ export async function insertDrive(driveData) {
     createdAt: new Date(),
   });
 
-  console.log("Drive inserted:", result.insertedId);
+  // console.log("Drive inserted:", result.insertedId);
 
   if (normalizedJobs.length > 0) {
     const driveDoc = {
@@ -230,7 +230,7 @@ export async function printDrives(limit = 100, debug = false) {
   }
 
   if (debug) {
-    console.log(`Drive collection | Count: ${drives.length}`);
+    // console.log(`Drive collection | Count: ${drives.length}`);
   }
 
   return drivesWithCounts;
@@ -315,7 +315,7 @@ export async function deleteDrive(id) {
       );
     });
 
-    console.log("Drive deleted:", deleteResult.deletedCount);
+    // console.log("Drive deleted:", deleteResult.deletedCount);
     return deleteResult;
   } catch (error) {
     if (error.message === "NOT_FOUND") {

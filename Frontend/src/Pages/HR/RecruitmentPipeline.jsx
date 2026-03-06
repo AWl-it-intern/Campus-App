@@ -1,22 +1,16 @@
-import {
-  Award,
-  Briefcase,
-  CheckCircle2,
-  Link2,
-  MapPin,
-  MessageSquare,
-  Sparkles,
-  UserCheck,
-  Users,
-} from "lucide-react";
+import { Briefcase, CheckCircle2, Link2, MapPin, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
+import EmptyState from "../../Components/common/EmptyState.jsx";
 import HrShell from "../../Components/common/HrShell.jsx";
+import SectionNavBar from "../../Components/common/SectionNavBar.jsx";
+import StatsCard from "../../Components/common/StatsCard.jsx";
 import { fetchDrives } from "../../services/drivesService";
 import { fetchJobs } from "../../services/jobsService";
 import HR_COLORS from "../../theme/hrPalette";
 import {
+  deleteRecruitmentFlowTemplate,
   listRecruitmentFlowTemplates,
   upsertRecruitmentFlowTemplate,
 } from "../../utils/recruitmentFlowTemplates";
@@ -28,64 +22,32 @@ const FLOW_STAGE_OPTIONS = [
   "Final Selection",
 ];
 
-const safeLower = (value) => String(value || "").trim().toLowerCase();
+const PIPELINE_VIEWS = {
+  HOME: "home",
+  BUILDER: "custom-flow-builder",
+  LIST: "flow-list",
+};
 
-const PROCESS_STEPS = [
-  {
-    title: "Create Drive",
-    subtitle: "Start by creating a drive as master record",
-    icon: MapPin,
-    path: "/HR/dashboard/Drives",
-  },
-  {
-    title: "Add Jobs to Drive",
-    subtitle: "Create jobs and map them to drive",
-    icon: Briefcase,
-    path: "/HR/dashboard/Create-Job",
-  },
-  {
-    title: "Assign Candidates",
-    subtitle: "Map candidates to the selected drive-job",
-    icon: Users,
-    path: "/HR/dashboard/Drives",
-  },
-  {
-    title: "Aptitude Test",
-    subtitle: "Send test link to all candidates in drive-job",
-    icon: Link2,
-    path: "/HR/dashboard/Aptitude-Test-Management",
-  },
-  {
-    title: "GD Round",
-    subtitle: "Evaluate group discussion performance",
-    icon: MessageSquare,
-    path: "/HR/dashboard/Manage-Panelists",
-  },
-  {
-    title: "PI Round",
-    subtitle: "Schedule and complete personal interview",
-    icon: UserCheck,
-    path: "/HR/dashboard/Manage-Panelists",
-  },
-  {
-    title: "Final Selection",
-    subtitle: "Finalize offers and close hiring",
-    icon: Award,
-    path: "/HR/dashboard/Offer-Approvals",
-  },
-];
+const safeText = (value) => String(value || "").trim();
+const safeLower = (value) => safeText(value).toLowerCase();
+const getJobKey = (job = {}) => safeText(job._id || job.id || job.JobID || job.JobName);
 
 export default function RecruitmentPipeline() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const colors = HR_COLORS;
   const [drives, setDrives] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [selectedDriveId, setSelectedDriveId] = useState("");
-  const [selectedJobName, setSelectedJobName] = useState("");
+  const [selectedJobRef, setSelectedJobRef] = useState("");
   const [selectedFlowStages, setSelectedFlowStages] = useState(FLOW_STAGE_OPTIONS);
   const [savedTemplates, setSavedTemplates] = useState([]);
+
+  const activeViewRaw = safeLower(searchParams.get("view"));
+  const activeView = Object.values(PIPELINE_VIEWS).includes(activeViewRaw)
+    ? activeViewRaw
+    : PIPELINE_VIEWS.HOME;
 
   useEffect(() => {
     let isMounted = true;
@@ -120,7 +82,7 @@ export default function RecruitmentPipeline() {
   }, []);
 
   useEffect(() => {
-    setSelectedJobName("");
+    setSelectedJobRef("");
   }, [selectedDriveId]);
 
   const selectedDrive = useMemo(
@@ -134,7 +96,7 @@ export default function RecruitmentPipeline() {
   const availableJobs = useMemo(() => {
     if (!selectedDrive) return [];
 
-    const driveCode = String(selectedDrive.DriveID || "").trim();
+    const driveCode = safeText(selectedDrive.DriveID);
     const configuredOpenings = new Set(
       (Array.isArray(selectedDrive.JobsOpening) ? selectedDrive.JobsOpening : [])
         .map((job) => safeLower(job))
@@ -142,7 +104,7 @@ export default function RecruitmentPipeline() {
     );
 
     return jobs.filter((job) => {
-      const jobName = String(job.JobName || "").trim();
+      const jobName = safeText(job.JobName);
       if (!jobName) return false;
 
       if (configuredOpenings.has(safeLower(jobName))) return true;
@@ -151,6 +113,21 @@ export default function RecruitmentPipeline() {
       return driveCode ? Object.prototype.hasOwnProperty.call(driveMap, driveCode) : false;
     });
   }, [selectedDrive, jobs]);
+
+  const selectedJob = useMemo(
+    () => availableJobs.find((job) => getJobKey(job) === selectedJobRef) || null,
+    [availableJobs, selectedJobRef],
+  );
+
+  const switchPipelineView = (nextView) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextView === PIPELINE_VIEWS.HOME) {
+      nextParams.delete("view");
+    } else {
+      nextParams.set("view", nextView);
+    }
+    setSearchParams(nextParams);
+  };
 
   const toggleFlowStage = (stageName) => {
     setSelectedFlowStages((previous) => {
@@ -162,7 +139,7 @@ export default function RecruitmentPipeline() {
   };
 
   const handleSaveFlowTemplate = () => {
-    if (!selectedDrive || !selectedJobName) {
+    if (!selectedDrive || !selectedJob) {
       alert("Choose drive and job before saving flow template.");
       return;
     }
@@ -175,7 +152,8 @@ export default function RecruitmentPipeline() {
     upsertRecruitmentFlowTemplate({
       driveRef: selectedDrive._id || selectedDrive.id || selectedDrive.DriveID,
       driveLabel: `${selectedDrive.DriveID || "-"} - ${selectedDrive.CollegeName || "-"}`,
-      jobName: selectedJobName,
+      jobName: safeText(selectedJob.JobName),
+      jobId: safeText(selectedJob.JobID || selectedJob._id || selectedJob.id),
       stages: selectedFlowStages,
     });
 
@@ -183,10 +161,106 @@ export default function RecruitmentPipeline() {
     alert("Flow template saved and assigned to selected drive-job.");
   };
 
+  const handleDeleteFlowTemplate = (template) => {
+    const driveLabel = safeText(template?.driveLabel) || "selected drive";
+    const jobName = safeText(template?.jobName) || "selected job";
+    const shouldDelete = window.confirm(
+      `Delete flow assignment for ${driveLabel} -> ${jobName}?`,
+    );
+    if (!shouldDelete) return;
+
+    const deleted = deleteRecruitmentFlowTemplate({
+      driveRef: template?.driveRef,
+      jobName: template?.jobName,
+      driveLabel: template?.driveLabel,
+    });
+
+    if (!deleted) {
+      alert("Flow assignment not found or already removed.");
+      return;
+    }
+
+    setSavedTemplates(listRecruitmentFlowTemplates());
+  };
+
+  const statsData = useMemo(
+    () => [
+      {
+        title: "Drives",
+        count: drives.length,
+        icon: MapPin,
+        bgColor: colors.rainShadow,
+        lightBg: "#E8F9F0",
+      },
+      {
+        title: "Jobs",
+        count: jobs.length,
+        icon: Briefcase,
+        bgColor: colors.softFlow,
+        lightBg: "#E6F9F5",
+      },
+      {
+        title: "Saved Flows",
+        count: savedTemplates.length,
+        icon: Link2,
+        bgColor: colors.marigoldFlame,
+        lightBg: "#FFF9E6",
+      },
+      {
+        title: "Jobs With Custom Flow",
+        count: new Set(
+          savedTemplates
+            .map((template) => safeLower(template.jobId || template.jobName))
+            .filter(Boolean),
+        ).size,
+        icon: CheckCircle2,
+        bgColor: colors.mossRock,
+        lightBg: "#E8F9E8",
+      },
+    ],
+    [
+      drives.length,
+      jobs.length,
+      savedTemplates,
+      colors.rainShadow,
+      colors.softFlow,
+      colors.marigoldFlame,
+      colors.mossRock,
+    ],
+  );
+
+  const pipelineNavItems = [
+    { key: PIPELINE_VIEWS.HOME, label: "Home" },
+    { key: PIPELINE_VIEWS.BUILDER, label: "Custom Flow Builder" },
+    { key: PIPELINE_VIEWS.LIST, label: "Flows Assigned to Jobs" },
+  ];
+
+  const viewHeader = {
+    [PIPELINE_VIEWS.HOME]: {
+      title: "Recruitment Pipeline",
+      subtitle: "Monitor pipeline configuration health across drives, jobs, and custom flows.",
+    },
+    [PIPELINE_VIEWS.BUILDER]: {
+      title: "Custom Flow Builder",
+      subtitle: "Build and assign custom interview flow templates by drive and job.",
+    },
+    [PIPELINE_VIEWS.LIST]: {
+      title: "Flows Assigned to Jobs",
+      subtitle: "Track saved flow templates mapped to each job with Job ID visibility.",
+    },
+  }[activeView];
+
   return (
     <HrShell
-      title="Recruitment Pipeline"
-      subtitle="Flow: Drive -> Jobs -> Candidates -> Aptitude -> GD -> PI -> Final Selection."
+      title={viewHeader.title}
+      subtitle={viewHeader.subtitle}
+      topNav={
+        <SectionNavBar
+          items={pipelineNavItems}
+          activeKey={activeView}
+          onChange={switchPipelineView}
+        />
+      }
     >
       {loadError ? (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
@@ -194,175 +268,195 @@ export default function RecruitmentPipeline() {
         </div>
       ) : null}
 
-      <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-2" style={{ color: colors.stonewash }}>
-          Recruitment Process
-        </h3>
-        <p className="text-sm text-gray-600">
-          This flow aligns with drive-job execution. Use steps to move through the process for each hiring track.
-        </p>
-      </section>
-
-      <section className="overflow-x-auto">
-        <div className="min-w-[980px]">
-          <div className="flex items-start">
-            {PROCESS_STEPS.map((step, index) => {
-              const Icon = step.icon;
-              const isLast = index === PROCESS_STEPS.length - 1;
-              return (
-                <div key={step.title} className="flex items-center flex-1">
-                  <button
-                    type="button"
-                    onClick={() => navigate(step.path)}
-                    className="flex-1 rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm hover:bg-gray-50 transition-all"
-                  >
-                    <div className="flex items-center gap-3 mb-2">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                        style={{ backgroundColor: colors.stonewash }}
-                      >
-                        <Icon size={16} />
-                      </div>
-                      <p className="text-base font-semibold" style={{ color: colors.stonewash }}>
-                        {step.title}
-                      </p>
-                    </div>
-                    <p className="text-sm text-gray-600">{step.subtitle}</p>
-                  </button>
-
-                  {!isLast ? (
-                    <div className="w-10 lg:w-14 h-[2px] mx-2" style={{ backgroundColor: colors.rainShadow }} />
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
-        {[
-          { title: "Live Drives", value: "12" },
-          { title: "Mapped Jobs", value: "34" },
-          { title: "Aptitude Runs", value: "18" },
-          { title: "Offers Closed", value: "28" },
-        ].map((item) => (
-          <article key={item.title} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">{item.title}</p>
-            <p className="text-2xl font-bold mt-2" style={{ color: colors.stonewash }}>
-              {item.value}
-            </p>
-          </article>
-        ))}
-      </section>
-
-      <section className="mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-2" style={{ color: colors.stonewash }}>
-          Custom Flow Builder
-        </h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Create and assign flow template to a specific drive-job. Only that job will use this flow.
-        </p>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <article className="rounded-xl border border-gray-200 p-4">
-            <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Sparkles size={16} />
-              Assign Flow To Drive-Job
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              <label className="text-sm">
-                <span className="block text-gray-600 mb-1">Drive</span>
-                <select
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  value={selectedDriveId}
-                  onChange={(event) => setSelectedDriveId(event.target.value)}
-                  disabled={loading}
-                >
-                  <option value="">Select Drive</option>
-                  {drives.map((drive) => {
-                    const driveKey = String(drive._id || drive.id || drive.DriveID || "");
-                    const driveLabel = `${drive.DriveID || "-"} - ${drive.CollegeName || "-"}`;
-                    return (
-                      <option key={driveKey} value={driveKey}>
-                        {driveLabel}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
-
-              <label className="text-sm">
-                <span className="block text-gray-600 mb-1">Job</span>
-                <select
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  value={selectedJobName}
-                  onChange={(event) => setSelectedJobName(event.target.value)}
-                  disabled={!selectedDrive || loading}
-                >
-                  <option value="">Select Job</option>
-                  {availableJobs.map((job) => (
-                    <option key={job._id || job.id || job.JobName} value={job.JobName}>
-                      {job.JobName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="space-y-2 mb-3">
-              {FLOW_STAGE_OPTIONS.map((stage) => (
-                <label
-                  key={stage}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2"
-                >
-                  <span className="text-sm text-gray-700">{stage}</span>
-                  <input
-                    type="checkbox"
-                    checked={selectedFlowStages.includes(stage)}
-                    onChange={() => toggleFlowStage(stage)}
-                  />
-                </label>
+      {activeView === PIPELINE_VIEWS.HOME ? (
+        <>
+          <section className="mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {statsData.map((stat, index) => (
+                <StatsCard
+                  key={index}
+                  title={stat.title}
+                  count={stat.count}
+                  icon={stat.icon}
+                  bgColor={stat.bgColor}
+                  lightBg={stat.lightBg}
+                />
               ))}
             </div>
+          </section>
 
-            <button
-              type="button"
-              onClick={handleSaveFlowTemplate}
-              className="w-full px-3 py-2 rounded-lg text-white font-semibold"
-              style={{ backgroundColor: colors.rainShadow }}
-            >
-              Save Flow Template
-            </button>
-          </article>
+          <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold mb-2" style={{ color: colors.stonewash }}>
+              Pipeline Overview
+            </h3>
+            <p className="text-sm text-gray-600">
+              Custom flow templates are drive-job specific. Use the builder to define stages and
+              track assignments in the list view with Job ID references.
+            </p>
+          </section>
+        </>
+      ) : null}
 
-          <article className="rounded-xl border border-gray-200 p-4">
-            <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <CheckCircle2 size={16} />
-              Assigned Templates
-            </h4>
+      {activeView === PIPELINE_VIEWS.BUILDER ? (
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-2" style={{ color: colors.stonewash }}>
+            Assign Flow To Drive-Job
+          </h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Create and assign a flow template to a specific drive-job pair.
+          </p>
 
-            <div className="space-y-2 max-h-[280px] overflow-auto pr-1">
-              {savedTemplates.length === 0 ? (
-                <p className="text-sm text-gray-500">No custom templates saved yet.</p>
-              ) : (
-                savedTemplates.map((template) => (
-                  <article
-                    key={`${template.driveRef}-${template.jobName}-${template.updatedAt}`}
-                    className="rounded-lg border border-gray-200 p-3"
-                  >
-                    <p className="text-sm font-semibold text-gray-800">{template.jobName}</p>
-                    <p className="text-xs text-gray-500 mb-1">{template.driveLabel || "-"}</p>
-                    <p className="text-xs text-gray-600">{(template.stages || []).join(" -> ")}</p>
-                  </article>
-                ))
-              )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <label className="text-sm">
+              <span className="block text-gray-600 mb-1">Drive</span>
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                value={selectedDriveId}
+                onChange={(event) => setSelectedDriveId(event.target.value)}
+                disabled={loading}
+              >
+                <option value="">Select Drive</option>
+                {drives.map((drive) => {
+                  const driveKey = String(drive._id || drive.id || drive.DriveID || "");
+                  const driveLabel = `${drive.DriveID || "-"} - ${drive.CollegeName || "-"}`;
+                  return (
+                    <option key={driveKey} value={driveKey}>
+                      {driveLabel}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <span className="block text-gray-600 mb-1">Job</span>
+              <select
+                className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                value={selectedJobRef}
+                onChange={(event) => setSelectedJobRef(event.target.value)}
+                disabled={!selectedDrive || loading}
+              >
+                <option value="">Select Job</option>
+                {availableJobs.map((job) => {
+                  const jobKey = getJobKey(job);
+                  return (
+                    <option key={jobKey} value={jobKey}>
+                      {`${job.JobID || "-"} - ${job.JobName || "-"}`}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          </div>
+
+          <div className="space-y-2 mb-4">
+            {FLOW_STAGE_OPTIONS.map((stage) => (
+              <label
+                key={stage}
+                className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2"
+              >
+                <span className="text-sm text-gray-700">{stage}</span>
+                <input
+                  type="checkbox"
+                  checked={selectedFlowStages.includes(stage)}
+                  onChange={() => toggleFlowStage(stage)}
+                />
+              </label>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveFlowTemplate}
+            className="w-full md:w-auto px-4 py-2 rounded-lg text-white font-semibold inline-flex items-center gap-2"
+            style={{ backgroundColor: colors.rainShadow }}
+          >
+            <Sparkles size={16} />
+            Save Flow Template
+          </button>
+        </section>
+      ) : null}
+
+      {activeView === PIPELINE_VIEWS.LIST ? (
+        <section className="rounded-2xl border border-gray-100 bg-white p-0 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-lg font-semibold" style={{ color: colors.stonewash }}>
+              Assigned Flow Templates
+            </h3>
+            <span className="text-sm text-gray-600">{savedTemplates.length} total</span>
+          </div>
+
+          {savedTemplates.length === 0 ? (
+            <div className="p-8">
+              <EmptyState
+                icon={Link2}
+                title="No flow assignments found"
+                message="Create a flow template from the Custom Flow Builder tab."
+              />
             </div>
-          </article>
-        </div>
-
-      </section>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead style={{ backgroundColor: `${colors.softFlow}20` }}>
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      Drive
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      Job ID
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      Job Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      Stages
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      Updated
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {savedTemplates.map((template) => (
+                    <tr
+                      key={`${template.driveRef}-${template.jobName}-${template.updatedAt}`}
+                      className="border-t border-gray-100"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-700">{template.driveLabel || "-"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{template.jobId || "-"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700 font-medium">
+                        {template.jobName || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {(template.stages || []).join(" -> ") || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {template.updatedAt
+                          ? new Date(template.updatedAt).toLocaleString("en-IN")
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFlowTemplate(template)}
+                          className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-white text-xs font-semibold hover:opacity-90 transition-all"
+                          style={{ backgroundColor: "#DC2626" }}
+                        >
+                          <Trash2 size={12} />
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      ) : null}
     </HrShell>
   );
 }

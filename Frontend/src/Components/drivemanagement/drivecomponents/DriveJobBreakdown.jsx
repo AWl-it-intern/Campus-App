@@ -1,16 +1,16 @@
-import { Briefcase, Users, UserCheck } from "lucide-react";
+import { ArrowRight, Briefcase, Users, UserCheck } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function DriveJobBreakdown({ jobRows, colors, drive }) {
   const navigate = useNavigate();
-const { driveId } = useParams();
+  const { driveId } = useParams();
 
-const handleJobClick = (job) => {
-  const jobKey = encodeURIComponent(job.jobName || "");
-  navigate(`/HR/dashboard/drive/${driveId}/job/${jobKey}/candidates`, {
-    state: { JobName: job.jobName, CollegeName: drive?.CollegeName || "" },
-  });
-};
+  const handleJobClick = (job) => {
+    const jobKey = encodeURIComponent(job.jobName || "");
+    navigate(`/HR/dashboard/drive/${driveId}/job/${jobKey}/candidates`, {
+      state: { JobName: job.jobName, CollegeName: drive?.CollegeName || "" },
+    });
+  };
 
   return (
     <section className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -47,11 +47,22 @@ const handleJobClick = (job) => {
               </tr>
             ) : (
               jobRows.map((job) => (
-                <tr key={job.jobName} className="border-b border-gray-100 hover:bg-gray-50" onClick={() => handleJobClick(job) } style={{ cursor: "pointer" }}>
+                <tr
+                  key={job.jobName}
+                  className="group border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50"
+                  onClick={() => handleJobClick(job)}
+                  title="Click row to view candidates"
+                >
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 font-semibold text-gray-800">
-                      <Briefcase size={16} style={{ color: colors.rainShadow }} />
-                      <span>{job.jobName}</span>
+                    <div>
+                      <div className="flex items-center gap-2 font-semibold text-gray-800">
+                        <Briefcase size={16} style={{ color: colors.rainShadow }} />
+                        <span>{job.jobName}</span>
+                      </div>
+                      <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400 transition-colors group-hover:text-gray-600">
+                        <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                        <span>Click row for candidates</span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">

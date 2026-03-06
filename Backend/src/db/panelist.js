@@ -93,7 +93,7 @@ export async function insertPanelist(panelistData) {
     createdAt: new Date(),
   });
 
-  console.log("Panelist inserted:", result.insertedId);
+  // console.log("Panelist inserted:", result.insertedId);
 
   return result;
 }
@@ -102,7 +102,7 @@ export async function deletePanelist(id) {
   const db = getDB();
   const result = await db.collection("Panelist").deleteOne({ _id: new ObjectId(id) });
 
-  console.log("Panelist deleted:", result.deletedCount);
+  // console.log("Panelist deleted:", result.deletedCount);
 
   return result;
 }
@@ -124,7 +124,7 @@ export async function updatePanelist(id, updateData) {
     },
   );
 
-  console.log("Panelist updated:", result.modifiedCount);
+  // console.log("Panelist updated:", result.modifiedCount);
 
   return result;
 }

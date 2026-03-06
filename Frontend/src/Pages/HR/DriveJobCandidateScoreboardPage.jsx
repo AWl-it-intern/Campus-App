@@ -1,6 +1,6 @@
-import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 import HrShell from "../../Components/common/HrShell.jsx";
 import { fetchDrives } from "../../services/drivesService";
@@ -11,7 +11,6 @@ import useDriveJobScoreboard from "../../hooks/useDriveJobScoreboard";
 const safeLower = (value) => String(value || "").trim().toLowerCase();
 
 export default function DriveJobCandidateScoreboardPage() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { driveId, jobId } = useParams();
   const colors = HR_COLORS;
@@ -110,32 +109,14 @@ export default function DriveJobCandidateScoreboardPage() {
     jobName: effectiveJobName,
   });
 
-  const headerActions = isContextMode ? (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() =>
-          navigate(`/HR/dashboard/drive/${driveId}/job/${encodeURIComponent(jobNameFromParams)}/candidates`, {
-            state: { JobName: jobNameFromParams, CollegeName: collegeName },
-          })
-        }
-        className="px-4 py-2 rounded-lg text-white text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
-        style={{ backgroundColor: colors.stonewash }}
-      >
-        <ArrowLeft size={14} className="inline mr-2" />
-        Back to Candidates
-      </button>
-    </div>
-  ) : null;
-
   return (
     <HrShell
-      title="Drive-Job Candidate Scoreboard"
+      title="Leaderboard"
       subtitle={
         isContextMode
           ? `Drive-job score view for ${driveLabel || `${collegeName} (${jobNameFromParams})`}.`
-          : "UI-only view of candidate details, mapped panelists, and Aptitude/GD/PI score fields."
+          : ""
       }
-      headerActions={headerActions}
     >
       {selectorsError ? (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
@@ -206,7 +187,7 @@ export default function DriveJobCandidateScoreboardPage() {
         <section className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5">
           <div className="mb-4">
             <h3 className="text-xl font-bold" style={{ color: colors.stonewash }}>
-              Drive-Job Candidate Scoreboard
+              Leaderboard
             </h3>
             <p className="text-sm text-gray-600 mt-1">
               Candidate scores for Aptitude, GD, and PI in this drive-job combination.

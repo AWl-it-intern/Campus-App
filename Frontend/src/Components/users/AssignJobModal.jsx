@@ -6,6 +6,7 @@ export default function AssignJobModal({
   isOpen,
   onClose,
   candidateId,
+  candidateIds = [],
   candidateName = "",
   candidateEmail = "",
   allJobs = [],
@@ -21,6 +22,19 @@ export default function AssignJobModal({
   const accentColor = colors.softFlow || "#00988D";
   const headerColor = colors.stonewash || "#005A56";
   const iconColor = colors.rainShadow || "#2B6777";
+  const targetCandidateIds = useMemo(() => {
+    const ids = Array.isArray(candidateIds)
+      ? candidateIds
+      : candidateId
+        ? [candidateId]
+        : [];
+    return Array.from(
+      new Set(ids.map((value) => String(value || "").trim()).filter(Boolean)),
+    );
+  }, [candidateId, candidateIds]);
+
+  const candidateCount = targetCandidateIds.length;
+  const isBulkMode = candidateCount > 1;
 
   useEffect(() => {
     if (!isOpen) {
@@ -50,15 +64,29 @@ export default function AssignJobModal({
   const clearSelected = () => setSelected([]);
 
   const deleteAllAssigned = async () => {
-    if (!candidateId) return;
+    if (targetCandidateIds.length === 0) return;
 
     setSaving(true);
     try {
-      const response = await updateCandidate(candidateId, {
-        AssignedJobs: [],
-        clearAssignedJobs: true,
+      const results = await Promise.allSettled(
+        targetCandidateIds.map((id) =>
+          updateCandidate(id, {
+            AssignedJobs: [],
+            clearAssignedJobs: true,
+          }),
+        ),
+      );
+      const failedCount = results.filter((result) => result.status === "rejected").length;
+      if (failedCount > 0) {
+        alert(`Failed to clear jobs for ${failedCount} candidate(s).`);
+      }
+      onAssigned?.({
+        jobs: [],
+        response: results,
+        mode: "clear",
+        candidateIds: targetCandidateIds,
+        filterBy,
       });
-      onAssigned?.({ jobs: [], response, mode: "clear" });
       onClose?.();
     } catch (error) {
       const msg = error?.response?.data?.error || error.message || "Unknown error";
@@ -69,14 +97,27 @@ export default function AssignJobModal({
   };
 
   const submit = async () => {
-    if (!candidateId || selected.length === 0) return;
+    if (targetCandidateIds.length === 0 || selected.length === 0) return;
 
     setSaving(true);
     try {
-      const payload = { AssignedJobs: selected };
-      const response = await updateCandidate(candidateId, payload);
+      const results = await Promise.allSettled(
+        targetCandidateIds.map((id) =>
+          updateCandidate(id, { AssignedJobs: selected }),
+        ),
+      );
+      const failedCount = results.filter((result) => result.status === "rejected").length;
+      if (failedCount > 0) {
+        alert(`Failed to assign jobs for ${failedCount} candidate(s).`);
+      }
       const selectedJobs = filteredByKeys.filter((job) => selected.includes(jobValue(job)));
-      onAssigned?.({ jobs: selectedJobs, response, mode: "append" });
+      onAssigned?.({
+        jobs: selectedJobs,
+        response: results,
+        mode: "append",
+        candidateIds: targetCandidateIds,
+        filterBy,
+      });
       onClose?.();
     } catch (error) {
       const msg = error?.response?.data?.error || error.message || "Unknown error";
@@ -89,17 +130,18 @@ export default function AssignJobModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+    <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
+      <div className="modal-surface bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
         <div className="p-6 text-white" style={{ backgroundColor: headerColor }}>
           <div className="flex items-center justify-between">
             <div>
               <h3 id="assign-jobs-title" className="text-2xl font-bold">
-                Assign Jobs
+                {isBulkMode ? "Assign Jobs (Bulk)" : "Assign Jobs"}
               </h3>
               <p className="text-sm opacity-90 mt-1">
-                {candidateName || "Candidate"}
-                {candidateEmail ? ` (${candidateEmail})` : ""}
+                {isBulkMode
+                  ? `${candidateCount} candidate(s) selected`
+                  : `${candidateName || "Candidate"}${candidateEmail ? ` (${candidateEmail})` : ""}`}
               </p>
             </div>
             <button
@@ -132,7 +174,7 @@ export default function AssignJobModal({
                 type="button"
                 className="text-sm px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 inline-flex items-center gap-1"
                 onClick={deleteAllAssigned}
-                disabled={saving}
+                disabled={saving || targetCandidateIds.length === 0}
               >
                 <Trash2 size={14} />
                 Delete all

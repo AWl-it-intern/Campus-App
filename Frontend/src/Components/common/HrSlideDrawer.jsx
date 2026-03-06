@@ -29,7 +29,7 @@ const MAIN_NAV_ITEMS = [
     activePrefixes: ["/HR/dashboard/Drives", "/HR/dashboard/drive/"],
   },
   {
-    label: "Create Jobs",
+    label: "Jobs Management",
     path: "/HR/dashboard/Create-Job",
     icon: Briefcase,
     activePrefixes: ["/HR/dashboard/Create-Job"],
@@ -132,7 +132,7 @@ export default function HrSlideDrawer({ isOpen, onClose }) {
     <>
       <button
         aria-label="Close navigation overlay"
-        className={`fixed inset-0 z-40 bg-black/45 transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-white/35 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}

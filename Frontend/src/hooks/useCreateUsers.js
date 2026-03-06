@@ -24,6 +24,9 @@ const candidateSortKey = (candidate) => {
   return Number.MAX_SAFE_INTEGER;
 };
 
+const getCandidateKey = (candidate) =>
+  String(candidate?._id || candidate?.id || candidate?.CandidateID || "").trim();
+
 export default function useCreateUsers({ drivesProp = [] } = {}) {
   const fileInputRef = useRef(null);
 
@@ -124,11 +127,52 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
     }
   };
 
+  const handleDeleteCandidatesBulk = async (candidateIds = []) => {
+    const ids = Array.from(
+      new Set((candidateIds || []).map((value) => String(value || "").trim()).filter(Boolean)),
+    );
+    if (ids.length === 0) {
+      return { deletedCount: 0, failedCount: 0, failedIds: [] };
+    }
+
+    const results = await Promise.allSettled(ids.map((candidateId) => deleteCandidate(candidateId)));
+    const deletedIds = [];
+    const failedIds = [];
+
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        deletedIds.push(ids[index]);
+        return;
+      }
+      failedIds.push(ids[index]);
+    });
+
+    if (deletedIds.length > 0) {
+      const deletedSet = new Set(deletedIds);
+      setCandidates((prev) =>
+        prev.filter((candidate) => !deletedSet.has(getCandidateKey(candidate))),
+      );
+    }
+
+    if (failedIds.length > 0) {
+      await loadCandidates();
+    }
+
+    return {
+      deletedCount: deletedIds.length,
+      failedCount: failedIds.length,
+      failedIds,
+    };
+  };
+
   const handleDeleteCandidate = async (candidateId) => {
     try {
-      await deleteCandidate(candidateId);
-      setCandidates((prev) => prev.filter((candidate) => candidate._id !== candidateId));
-      alert("Candidate Deleted Successfully!");
+      const result = await handleDeleteCandidatesBulk([candidateId]);
+      if (result.deletedCount === 1 && result.failedCount === 0) {
+        alert("Candidate Deleted Successfully!");
+      } else {
+        alert("Failed to delete candidate");
+      }
     } catch (error) {
       console.error("Error deleting candidate:", error);
       alert("Failed to delete candidate");
@@ -136,7 +180,7 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
   };
 
   const onOpenAssign = (candidate) => {
-    const candidateDriveId = String(candidate.driveId || "");
+    const candidateDriveId = String(candidate.driveId || candidate.DriveID || "");
     const drive = drivesMap[candidateDriveId];
 
     const filterKeys = Array.isArray(drive?.JobsOpening) ? drive.JobsOpening : [];
@@ -152,14 +196,29 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
     setIsAssignOpen(true);
   };
 
-  const handleAssigned = async ({ jobs: assignedJobs, candidateId, mode }) => {
+  const handleAssigned = async ({
+    jobs: assignedJobs,
+    candidateId,
+    candidateIds,
+    mode,
+    filterBy,
+  }) => {
+    const targetIds = Array.isArray(candidateIds) && candidateIds.length > 0
+      ? candidateIds
+      : candidateId
+        ? [candidateId]
+        : [];
+    if (targetIds.length === 0) return;
+
+    const targetIdSet = new Set(targetIds.map((value) => String(value)));
+    const keyName = String(filterBy || assignCtx.filterBy || "JobName");
     const names = (assignedJobs || [])
-      .map((job) => String(job?.[assignCtx.filterBy] ?? ""))
+      .map((job) => String(job?.[keyName] ?? ""))
       .filter(Boolean);
 
     setCandidates((prev) =>
       prev.map((candidate) =>
-        candidate._id === candidateId
+        targetIdSet.has(String(candidate._id))
           ? {
               ...candidate,
               AssignedJobs:
@@ -177,6 +236,7 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
           : candidate,
       ),
     );
+
     await loadCandidates();
   };
 
@@ -209,8 +269,7 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
     if (!drive) return null;
 
     const driveCode = drive.DriveID || drive.driveId || "";
-    const collegeName = drive.CollegeName || drive.collegeName || "";
-    return `${driveCode} - ${collegeName}`.trim();
+    return String(driveCode || "").trim();
   };
 
   const filteredCandidates = useMemo(
@@ -354,6 +413,7 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
     getDriveName,
     handleCreateCandidate,
     handleDeleteCandidate,
+    handleDeleteCandidatesBulk,
     onOpenAssign,
     handleAssigned,
     exportCandidatesToCsv,

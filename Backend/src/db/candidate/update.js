@@ -60,6 +60,7 @@ export async function editcandidate(id, updateData) {
   const hasDriveUpdate = hasDriveReferenceKeys(payload);
   let previousDriveIds = [];
   let nextDriveDocs = [];
+  let canonicalDriveFields = null;
 
   if (hasDriveUpdate) {
     previousDriveIds = await resolveDriveObjectIdsByReferences(
@@ -67,7 +68,7 @@ export async function editcandidate(id, updateData) {
     );
 
     nextDriveDocs = await resolveDriveDocsByReferences(extractDriveReferences(payload));
-    Object.assign(payload, buildCandidateDriveFields(nextDriveDocs[0] || null));
+    canonicalDriveFields = buildCandidateDriveFields(nextDriveDocs[0] || null);
   }
 
   const unsetLegacyFields = {};
@@ -76,14 +77,15 @@ export async function editcandidate(id, updateData) {
   }
   if (hasDriveUpdate) {
     unsetLegacyFields.assignedDriveId = "";
-    unsetLegacyFields.DriveID = "";
     unsetLegacyFields.AssignedDriveId = "";
   }
 
   delete payload.AssignedJob;
   delete payload.assignedDriveId;
-  delete payload.DriveID;
   delete payload.AssignedDriveId;
+  if (hasDriveUpdate && canonicalDriveFields) {
+    Object.assign(payload, canonicalDriveFields);
+  }
 
   const updateDoc = {
     $set: {
@@ -131,7 +133,7 @@ export async function editcandidate(id, updateData) {
     await linkJobsToDrive(effectiveJobs, currentDriveDocs[0] || null);
   }
 
-  console.log("Candidate updated:", result.modifiedCount);
+  // console.log("Candidate updated:", result.modifiedCount);
 
   return result;
 }

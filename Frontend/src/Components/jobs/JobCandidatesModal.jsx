@@ -5,10 +5,10 @@ export default function JobCandidatesModal({ isOpen, onClose, job, candidates = 
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4"
       aria-labelledby="job-candidates-title"
     >
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
+      <div className="modal-surface bg-white rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b flex items-center justify-between">
           <div>
             <h2 id="job-candidates-title" className="text-lg sm:text-xl font-semibold">

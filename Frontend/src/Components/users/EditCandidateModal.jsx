@@ -24,6 +24,7 @@ export default function EditCandidateModal({
           String(drive.DriveID || "") === String(rawDriveId),
       );
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: candidate.name || "",
         email: candidate.email || "",
@@ -58,10 +59,10 @@ export default function EditCandidateModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4"
       aria-labelledby="edit-candidate-title"
     >
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+      <div className="modal-surface bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
         <div className="px-6 py-4 border-b flex items-center justify-between">
           <h2 id="edit-candidate-title" className="text-lg sm:text-xl font-semibold">
             Edit Candidate

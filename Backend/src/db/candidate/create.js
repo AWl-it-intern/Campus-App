@@ -73,7 +73,7 @@ export async function insertCandidate(candidateData) {
     });
 
     if (insertResult.acknowledged) {
-      console.log("Candidate inserted:", insertResult.insertedId);
+      // console.log("Candidate inserted:", insertResult.insertedId);
       await syncCandidateDriveMembership(
         generatedCandidateId,
         [],
@@ -261,6 +261,6 @@ export async function insertManyCandidates(candidatesData = [], options = {}) {
     await recalculateDriveCandidateStats(Array.from(driveCandidateMap.keys()));
   }
 
-  console.log("Candidates inserted:", insertResult.insertedCount);
+  // console.log("Candidates inserted:", insertResult.insertedCount);
   return insertResult;
 }

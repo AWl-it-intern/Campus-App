@@ -30,9 +30,9 @@ export function startSession() {
 export async function connectDB() {
   if (db) return db;
 
-  console.log("MongoDB: attempting connection...");
+  // console.log("MongoDB: attempting connection...");
   await client.connect();
-  console.log("MongoDB: connected");
+  // console.log("MongoDB: connected");
 
   db = client.db(dbName);
   return db;
@@ -41,5 +41,5 @@ export async function connectDB() {
 export async function closeDB() {
   await client.close();
   db = null;
-  console.log("MongoDB connection closed");
+  // console.log("MongoDB connection closed");
 }

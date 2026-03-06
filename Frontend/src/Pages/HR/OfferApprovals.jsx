@@ -30,7 +30,7 @@ export default function OfferApprovals() {
   return (
     <HrShell
       title="Offer Approvals"
-      subtitle="UI-only review workspace for final offer decisions."
+      subtitle=""
     >
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <article className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

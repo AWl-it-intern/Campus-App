@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Users, Briefcase, AlertTriangle, MapPin } from "lucide-react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import {
   UserFormCard,
@@ -17,10 +17,7 @@ import useCreateUsers from "../../hooks/useCreateUsers";
 import HR_COLORS from "../../theme/hrPalette";
 
 export default function CreateUsers({ drives: drivesProp = [] }) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const fromDrives = location.state?.fromDrives || false;
   const colors = HR_COLORS;
 
   const CANDIDATE_VIEWS = {
@@ -50,7 +47,6 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
     setJobFilter,
     isAssignOpen,
     setIsAssignOpen,
-    assignCtx,
     isEditOpen,
     editingCandidate,
     uniqueColleges,
@@ -58,8 +54,7 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
     filteredCandidates,
     getDriveName,
     handleCreateCandidate,
-    handleDeleteCandidate,
-    onOpenAssign,
+    handleDeleteCandidatesBulk,
     handleAssigned,
     exportCandidatesToCsv,
     onImportClick,
@@ -68,6 +63,103 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
     closeEditCandidate,
     saveCandidateEdits,
   } = useCreateUsers({ drivesProp });
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
+  const selectAllRef = useRef(null);
+
+  const getCandidateKey = (candidate) =>
+    String(candidate?._id || candidate?.id || candidate?.CandidateID || "").trim();
+
+  const allCandidateIdSet = useMemo(
+    () => new Set((candidates || []).map((candidate) => getCandidateKey(candidate)).filter(Boolean)),
+    [candidates],
+  );
+
+  const activeSelectedCandidateIds = useMemo(
+    () => selectedCandidateIds.filter((candidateId) => allCandidateIdSet.has(candidateId)),
+    [selectedCandidateIds, allCandidateIdSet],
+  );
+
+  const selectedCandidateSet = useMemo(
+    () => new Set(activeSelectedCandidateIds.map((value) => String(value))),
+    [activeSelectedCandidateIds],
+  );
+
+  const visibleCandidateIds = useMemo(
+    () => filteredCandidates.map((candidate) => getCandidateKey(candidate)).filter(Boolean),
+    [filteredCandidates],
+  );
+
+  const selectedVisibleCount = useMemo(
+    () => visibleCandidateIds.filter((candidateId) => selectedCandidateSet.has(candidateId)).length,
+    [visibleCandidateIds, selectedCandidateSet],
+  );
+
+  const allVisibleSelected =
+    visibleCandidateIds.length > 0 && selectedVisibleCount === visibleCandidateIds.length;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
+
+  useEffect(() => {
+    if (!selectAllRef.current) return;
+    selectAllRef.current.indeterminate = someVisibleSelected;
+  }, [someVisibleSelected, allVisibleSelected]);
+
+  const toggleCandidateSelection = (candidateId) => {
+    const normalizedId = String(candidateId || "").trim();
+    if (!normalizedId) return;
+    setSelectedCandidateIds((prev) =>
+      prev.includes(normalizedId)
+        ? prev.filter((value) => value !== normalizedId)
+        : [...prev, normalizedId],
+    );
+  };
+
+  const toggleSelectAllVisible = () => {
+    if (allVisibleSelected) {
+      const visibleSet = new Set(visibleCandidateIds);
+      setSelectedCandidateIds((prev) => prev.filter((candidateId) => !visibleSet.has(candidateId)));
+      return;
+    }
+
+    setSelectedCandidateIds((prev) => {
+      const merged = new Set(prev);
+      visibleCandidateIds.forEach((candidateId) => merged.add(candidateId));
+      return Array.from(merged);
+    });
+  };
+
+  const openBulkAssign = () => {
+    if (activeSelectedCandidateIds.length === 0) {
+      alert("Select at least one candidate.");
+      return;
+    }
+    setIsAssignOpen(true);
+  };
+
+  const handleBulkDelete = async () => {
+    if (activeSelectedCandidateIds.length === 0) {
+      alert("Select at least one candidate.");
+      return;
+    }
+
+    const idsToDelete = [...activeSelectedCandidateIds];
+    const confirmed = window.confirm(
+      `Delete ${idsToDelete.length} selected candidate(s)? This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    const result = await handleDeleteCandidatesBulk(idsToDelete);
+    const failedSet = new Set(result.failedIds || []);
+    setSelectedCandidateIds((prev) => prev.filter((candidateId) => failedSet.has(candidateId)));
+
+    if (result.failedCount > 0) {
+      alert(
+        `Deleted ${result.deletedCount} candidate(s). Failed to delete ${result.failedCount} candidate(s).`,
+      );
+      return;
+    }
+
+    alert(`Deleted ${result.deletedCount} candidate(s) successfully.`);
+  };
 
   const getAssignedJobs = (candidate) => {
     if (Array.isArray(candidate?.AssignedJobs)) {
@@ -159,21 +251,10 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
     setSearchParams(nextParams);
   };
 
-  const headerActions = fromDrives ? (
-    <button
-      onClick={() => navigate("/HR/dashboard/Drives")}
-      className="px-4 py-2 rounded-lg text-white text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
-      style={{ backgroundColor: colors.stonewash }}
-    >
-      Back to Drive Management
-    </button>
-  ) : null;
-
   return (
     <HrShell
       title={viewHeader.title}
       subtitle={viewHeader.subtitle}
-      headerActions={headerActions}
       topNav={
         <SectionNavBar
           items={candidateNavItems}
@@ -236,10 +317,45 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
             colors={colors}
           />
 
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">{activeSelectedCandidateIds.length}</span> selected
+            </p>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={openBulkAssign}
+                className="px-3 py-1.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60"
+                style={{ backgroundColor: colors.mossRock }}
+                disabled={activeSelectedCandidateIds.length === 0}
+              >
+                Assign Job to Selected
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                className="px-3 py-1.5 rounded-lg text-white text-sm font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-60"
+                disabled={activeSelectedCandidateIds.length === 0}
+              >
+                Delete Selected
+              </button>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead style={{ backgroundColor: colors.softFlow + "20" }}>
                 <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectAllVisible}
+                      disabled={visibleCandidateIds.length === 0}
+                    />
+                  </th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
                     Candidate ID
                   </th>
@@ -266,7 +382,7 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
               <tbody>
                 {filteredCandidates.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="py-12">
+                    <td colSpan="8" className="py-12">
                       <EmptyState
                         icon={Users}
                         title="No candidates found"
@@ -276,13 +392,15 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
                   </tr>
                 ) : (
                   filteredCandidates.map((candidate) => (
+                    // Selection is keyed by stable candidate identifiers.
                     <UserTableRow
-                      key={candidate._id}
+                      key={getCandidateKey(candidate)}
                       candidate={candidate}
+                      candidateKey={getCandidateKey(candidate)}
+                      isSelected={selectedCandidateSet.has(getCandidateKey(candidate))}
+                      onToggleSelect={toggleCandidateSelection}
                       getDriveName={getDriveName}
                       colors={colors}
-                      deleteCandidate={handleDeleteCandidate}
-                      onOpenAssign={onOpenAssign}
                       onEdit={openEditCandidate}
                     />
                   ))
@@ -293,13 +411,17 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
             <AssignJobModal
               isOpen={isAssignOpen}
               onClose={() => setIsAssignOpen(false)}
-              candidateId={assignCtx.candidateId}
-              candidateName={assignCtx.candidateName}
-              candidateEmail={assignCtx.candidateEmail}
+              candidateId={activeSelectedCandidateIds[0] || null}
+              candidateIds={activeSelectedCandidateIds}
+              candidateName={`${activeSelectedCandidateIds.length} selected candidate(s)`}
+              candidateEmail=""
               allJobs={jobs}
-              filterKeys={assignCtx.filterKeys}
-              filterBy={assignCtx.filterBy}
-              onAssigned={handleAssigned}
+              filterKeys={[]}
+              filterBy="JobName"
+              onAssigned={async (payload) => {
+                await handleAssigned(payload);
+                setSelectedCandidateIds([]);
+              }}
               colors={colors}
             />
 

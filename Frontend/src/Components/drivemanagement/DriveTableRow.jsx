@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { ArrowRight, Pencil } from "lucide-react";
 
 export function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }) {
   const candidateCount = Array.isArray(drive?.CandidateIDs)
@@ -6,7 +6,11 @@ export function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }
     : Number(drive?.NumberOfCandidates) || 0;
 
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"  onClick={() => onRowClick?.(drive)} >
+    <tr
+      className="group border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50"
+      onClick={() => onRowClick?.(drive)}
+      title="Click row to open drive details"
+    >
       <td className="px-6 py-4">
         <span
           className="px-3 py-1 rounded-lg text-sm font-semibold"
@@ -14,6 +18,10 @@ export function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }
         >
           {drive.DriveID}
         </span>
+        <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400 transition-colors group-hover:text-gray-600">
+          <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+          <span>Click row for details</span>
+        </div>
       </td>
       <td className="px-6 py-4 text-sm text-gray-700">{drive.CollegeName}</td>
       <td className="px-6 py-4 text-sm text-gray-700">{drive.StartDate}</td>

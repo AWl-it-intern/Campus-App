@@ -89,8 +89,7 @@ export default function useDriveCandidates({ jobName, driveId }) {
     const drive = drivesMap[String(driveId || "")];
     if (!drive) return "";
     const driveCode = drive.DriveID || drive.driveId || "";
-    const college = drive.CollegeName || drive.collegeName || "";
-    return [driveCode, college].filter(Boolean).join(" - ");
+    return String(driveCode || "").trim();
   };
 
   const filteredCandidates = useMemo(() => {

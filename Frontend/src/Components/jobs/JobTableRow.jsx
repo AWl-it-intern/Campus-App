@@ -1,4 +1,4 @@
-import { Briefcase, Trash2, Users } from "lucide-react";
+import { ArrowRight, Briefcase, Trash2, Users } from "lucide-react";
 
 export const JobTableRow = ({
   job,
@@ -16,8 +16,9 @@ export const JobTableRow = ({
 
   return (
     <tr
-      className="border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+      className="group border-b border-gray-200 cursor-pointer transition-colors hover:bg-gray-50"
       onClick={() => onRowClick?.(job)}
+      title="Click row to view job candidates"
     >
       <td className="px-6 py-4">
         <span
@@ -31,9 +32,15 @@ export const JobTableRow = ({
         </span>
       </td>
       <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          <Briefcase size={18} style={{ color: colors.mossRock }} />
-          <span className="font-semibold text-gray-800">{job.JobName}</span>
+        <div>
+          <div className="flex items-center gap-2">
+            <Briefcase size={18} style={{ color: colors.mossRock }} />
+            <span className="font-semibold text-gray-800">{job.JobName}</span>
+          </div>
+          <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400 transition-colors group-hover:text-gray-600">
+            <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+            <span>Click row for details</span>
+          </div>
         </div>
       </td>
       <td className="px-6 py-4">
