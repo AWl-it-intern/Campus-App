@@ -1,5 +1,6 @@
-import { Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { Users, UserCheck, Briefcase, CalendarClock } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   PanelistFormCard,
@@ -9,12 +10,26 @@ import {
   ScheduleRoundModal,
 } from "../../Components/panelists/index.js";
 import EmptyState from "../../Components/common/EmptyState.jsx";
+import StatsCard from "../../Components/common/StatsCard.jsx";
+import HrShell from "../../Components/common/HrShell.jsx";
+import SectionNavBar from "../../Components/common/SectionNavBar.jsx";
 import HR_COLORS from "../../theme/hrPalette";
 import useCreatePanelist from "../../hooks/useCreatePanelist";
 
 export default function CreatePanelist({ onPanelistsUpdate }) {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const colors = HR_COLORS;
+
+  const PANELIST_VIEWS = {
+    HOME: "home",
+    CREATE: "create-panelist",
+    LIST: "panelist-list-assignment",
+  };
+
+  const activeViewRaw = String(searchParams.get("view") || "").trim().toLowerCase();
+  const activeView = Object.values(PANELIST_VIEWS).includes(activeViewRaw)
+    ? activeViewRaw
+    : PANELIST_VIEWS.HOME;
 
   const {
     fetchedCandidates,
@@ -22,6 +37,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     fetchedJobs,
     jobsLoading,
     fetchError,
+    panelists,
     panelistsLoading,
     panelistsError,
     newPanelist,
@@ -52,45 +68,144 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
     getCandidateName,
   } = useCreatePanelist({ onPanelistsUpdate });
 
+  const assignedPanelistsCount = useMemo(
+    () => panelists.filter((panelist) => (panelist.assignedJobs || []).length > 0).length,
+    [panelists],
+  );
+
+  const scheduledRoundsCount = useMemo(
+    () =>
+      panelists.reduce(
+        (sum, panelist) => sum + (Array.isArray(panelist.scheduledRounds) ? panelist.scheduledRounds.length : 0),
+        0,
+      ),
+    [panelists],
+  );
+
+  const statsData = useMemo(
+    () => [
+      {
+        title: "Total Panelists",
+        count: panelists.length,
+        icon: Users,
+        bgColor: colors.rainShadow,
+        lightBg: "#E8F9F0",
+      },
+      {
+        title: "Assigned Panelists",
+        count: assignedPanelistsCount,
+        icon: Briefcase,
+        bgColor: colors.softFlow,
+        lightBg: "#E6F9F5",
+      },
+      {
+        title: "Unassigned Panelists",
+        count: Math.max(0, panelists.length - assignedPanelistsCount),
+        icon: UserCheck,
+        bgColor: colors.marigoldFlame,
+        lightBg: "#FFF9E6",
+      },
+      {
+        title: "Scheduled Rounds",
+        count: scheduledRoundsCount,
+        icon: CalendarClock,
+        bgColor: colors.mossRock,
+        lightBg: "#E8F9E8",
+      },
+    ],
+    [
+      panelists.length,
+      assignedPanelistsCount,
+      scheduledRoundsCount,
+      colors.rainShadow,
+      colors.softFlow,
+      colors.marigoldFlame,
+      colors.mossRock,
+    ],
+  );
+
+  const panelistNavItems = [
+    { key: PANELIST_VIEWS.HOME, label: "Home" },
+    { key: PANELIST_VIEWS.CREATE, label: "Create Panelist" },
+    { key: PANELIST_VIEWS.LIST, label: "Panelist List-Assignment" },
+  ];
+
+  const viewHeader = {
+    [PANELIST_VIEWS.HOME]: {
+      title: "Panelist Management",
+      subtitle: "Track panelist assignment readiness and interview scheduling coverage.",
+    },
+    [PANELIST_VIEWS.CREATE]: {
+      title: "Create Panelist",
+      subtitle: "Add new panelists with role details and expertise focus.",
+    },
+    [PANELIST_VIEWS.LIST]: {
+      title: "Panelist List-Assignment",
+      subtitle: "Manage panelist assignments, schedules, and active panel capacity.",
+    },
+  }[activeView];
+
+  const switchPanelistView = (nextView) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextView === PANELIST_VIEWS.HOME) {
+      nextParams.delete("view");
+    } else {
+      nextParams.set("view", nextView);
+    }
+    setSearchParams(nextParams);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <button
-          onClick={() => navigate("/HR/dashboard")}
-          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
-          style={{ backgroundColor: colors.stonewash }}
-        >
-          {"<-"} Back to Dashboard
-        </button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: colors.stonewash }}>
-            Manage Panelists
-          </h1>
-          <p className="text-gray-600">
-            Create and manage interview panelists for recruitment
-          </p>
+    <HrShell
+      title={viewHeader.title}
+      subtitle={viewHeader.subtitle}
+      topNav={
+        <SectionNavBar
+          items={panelistNavItems}
+          activeKey={activeView}
+          onChange={switchPanelistView}
+        />
+      }
+    >
+      {fetchError && (
+        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <strong>Error:</strong> {fetchError}
         </div>
+      )}
 
-        {fetchError && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            <strong>Error:</strong> {fetchError}
+      {panelistsError && (
+        <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+          <strong>Warning:</strong> {panelistsError}
+        </div>
+      )}
+
+      {activeView === PANELIST_VIEWS.HOME ? (
+        <section className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {statsData.map((stat, index) => (
+              <StatsCard
+                key={index}
+                title={stat.title}
+                count={stat.count}
+                icon={stat.icon}
+                bgColor={stat.bgColor}
+                lightBg={stat.lightBg}
+              />
+            ))}
           </div>
-        )}
+        </section>
+      ) : null}
 
-        {panelistsError && (
-          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
-            <strong>Warning:</strong> {panelistsError}
-          </div>
-        )}
-
+      {activeView === PANELIST_VIEWS.CREATE ? (
         <PanelistFormCard
           newPanelist={newPanelist}
           setNewPanelist={setNewPanelist}
           createPanelist={handleCreatePanelist}
           colors={colors}
         />
+      ) : null}
 
+      {activeView === PANELIST_VIEWS.LIST ? (
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <PanelistsTableHeader
             filteredPanelistsCount={filteredPanelists.length}
@@ -161,7 +276,7 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
             </table>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <AssignJobModal
         isOpen={showAssignModal}
@@ -187,6 +302,6 @@ export default function CreatePanelist({ onPanelistsUpdate }) {
         getCandidateName={getCandidateName}
         colors={colors}
       />
-    </div>
+    </HrShell>
   );
 }

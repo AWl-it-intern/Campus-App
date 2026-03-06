@@ -138,7 +138,11 @@ export default function useDrivePage({ driveId }) {
         candidateCount,
         panelists: mappedPanelists,
       };
-    });
+    }).sort((left, right) =>
+      String(left.jobName || "").localeCompare(String(right.jobName || ""), undefined, {
+        sensitivity: "base",
+      }),
+    );
   }, [drive, driveScopedCandidates, panelists, jobs]);
 
   return {

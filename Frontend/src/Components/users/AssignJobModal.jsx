@@ -1,18 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
+import { Briefcase, CheckCircle2, Trash2, X } from "lucide-react";
 import { updateCandidate } from "../../services/candidatesService";
 
 export default function AssignJobModal({
   isOpen,
   onClose,
   candidateId,
+  candidateName = "",
+  candidateEmail = "",
   allJobs = [],
   filterKeys = [],
   filterBy = "JobID",
   onAssigned,
   loading = false,
+  colors = {},
 }) {
   const [selected, setSelected] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  const accentColor = colors.softFlow || "#00988D";
+  const headerColor = colors.stonewash || "#005A56";
+  const iconColor = colors.rainShadow || "#2B6777";
 
   useEffect(() => {
     if (!isOpen) {
@@ -32,8 +40,10 @@ export default function AssignJobModal({
   const jobValue = (job) => String(job?.[filterBy] ?? "");
 
   const toggleOne = (value) => {
-    setSelected((prev) =>
-      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value],
+    setSelected((previous) =>
+      previous.includes(value)
+        ? previous.filter((item) => item !== value)
+        : [...previous, value],
     );
   };
 
@@ -41,6 +51,7 @@ export default function AssignJobModal({
 
   const deleteAllAssigned = async () => {
     if (!candidateId) return;
+
     setSaving(true);
     try {
       const response = await updateCandidate(candidateId, {
@@ -59,11 +70,11 @@ export default function AssignJobModal({
 
   const submit = async () => {
     if (!candidateId || selected.length === 0) return;
+
     setSaving(true);
     try {
       const payload = { AssignedJobs: selected };
       const response = await updateCandidate(candidateId, payload);
-
       const selectedJobs = filteredByKeys.filter((job) => selected.includes(jobValue(job)));
       onAssigned?.({ jobs: selectedJobs, response, mode: "append" });
       onClose?.();
@@ -78,117 +89,135 @@ export default function AssignJobModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      aria-labelledby="assign-jobs-title"
-    >
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b flex items-center justify-between">
-          <h2 id="assign-jobs-title" className="text-lg sm:text-xl font-semibold">
-            Assign Jobs
-          </h2>
-          <button
-            aria-label="Close"
-            onClick={onClose}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-gray-100"
-          >
-            ?
-          </button>
-        </div>
-
-        <div className="px-6 pt-4 pb-2">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div className="p-6 text-white" style={{ backgroundColor: headerColor }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 id="assign-jobs-title" className="text-2xl font-bold">
+                Assign Jobs
+              </h3>
+              <p className="text-sm opacity-90 mt-1">
+                {candidateName || "Candidate"}
+                {candidateEmail ? ` (${candidateEmail})` : ""}
+              </p>
+            </div>
             <button
               type="button"
-              className="text-sm px-3 py-1.5 rounded-lg border hover:bg-gray-50"
-              onClick={clearSelected}
-              disabled={selected.length === 0 || saving}
+              aria-label="Close"
+              onClick={onClose}
+              className="w-10 h-10 rounded-full hover:bg-white hover:bg-opacity-20 flex items-center justify-center transition-all"
             >
-              Clear selected
+              <X size={24} />
             </button>
-            <button
-              type="button"
-              className="text-sm px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
-              onClick={deleteAllAssigned}
-              disabled={saving}
-            >
-              Delete all
-            </button>
-            <div role="status" aria-live="polite" className="ml-auto text-sm text-gray-600">
-              Selected: <strong>{selected.length}</strong>
-            </div>
-          </div>
-
-          <div className="rounded-xl border overflow-hidden">
-            <div className="max-h-72 overflow-auto">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center text-center py-16 gap-2">
-                  <div className="text-3xl">?</div>
-                  <div className="text-sm font-medium text-gray-900">Loading jobs...</div>
-                  <div className="text-xs text-gray-500">Please wait while we fetch jobs.</div>
-                </div>
-              ) : filteredByKeys.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-center py-16 gap-2">
-                  <div className="text-3xl">??</div>
-                  <div className="text-sm font-medium text-gray-900">No jobs found</div>
-                  <div className="text-xs text-gray-500">No jobs available for assignment.</div>
-                </div>
-              ) : (
-                <ul className="divide-y">
-                  {filteredByKeys.map((job) => {
-                    const value = jobValue(job);
-                    const id = `job-${job._id || job.JobID || value}`;
-                    const checked = selected.includes(value);
-                    const labelMain = job?.JobID
-                      ? `${job.JobID} - ${job.JobName || job.JobTitle || ""}`
-                      : job?.JobName || job?.JobTitle || "Unnamed";
-
-                    return (
-                      <li key={id} className="px-4 py-3 hover:bg-gray-50">
-                        <label htmlFor={id} className="flex items-start gap-3 cursor-pointer">
-                          <input
-                            id={id}
-                            type="checkbox"
-                            className="mt-1 h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
-                            checked={checked}
-                            onChange={() => toggleOne(value)}
-                            disabled={!value || saving}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900">{labelMain}</div>
-                            {value && (
-                              <div className="text-xs text-gray-500">
-                                store as: <code className="font-mono">{value}</code>
-                              </div>
-                            )}
-                          </div>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t bg-white sticky bottom-0 flex items-center justify-end gap-2">
+        <div className="p-6 overflow-y-auto max-h-96">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <p className="text-gray-700">
+              <span className="font-semibold">{selected.length}</span> job(s) selected
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="text-sm px-3 py-1.5 rounded-lg border hover:bg-gray-50 disabled:opacity-50"
+                onClick={clearSelected}
+                disabled={selected.length === 0 || saving}
+              >
+                Clear selected
+              </button>
+
+              <button
+                type="button"
+                className="text-sm px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50 inline-flex items-center gap-1"
+                onClick={deleteAllAssigned}
+                disabled={saving}
+              >
+                <Trash2 size={14} />
+                Delete all
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-300 mx-auto mb-3"></div>
+                <p className="font-medium">Loading jobs...</p>
+              </div>
+            ) : filteredByKeys.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Briefcase size={48} className="mx-auto mb-3 text-gray-300" />
+                <p className="font-medium">No jobs available</p>
+                <p className="text-sm">Please add jobs in Job Management first</p>
+              </div>
+            ) : (
+              filteredByKeys.map((job) => {
+                const value = jobValue(job);
+                const labelMain = job?.JobName || job?.JobTitle || value || "Unnamed Job";
+                const labelSub = job?.JobID || "-";
+                const checked = selected.includes(value);
+                const itemKey = job._id || job.id || job.JobID || value;
+
+                return (
+                  <label
+                    key={itemKey}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      checked
+                        ? "border-opacity-100 shadow-md"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                    style={{
+                      borderColor: checked ? accentColor : undefined,
+                      backgroundColor: checked ? `${accentColor}10` : undefined,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded accent-green-600"
+                      checked={checked}
+                      onChange={() => toggleOne(value)}
+                      disabled={!value || saving}
+                    />
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white shrink-0"
+                      style={{ backgroundColor: iconColor }}
+                    >
+                      <Briefcase size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 truncate">{labelMain}</p>
+                      <p className="text-sm text-gray-600">Job ID: {labelSub}</p>
+                    </div>
+                    {checked && <CheckCircle2 size={24} style={{ color: accentColor }} />}
+                  </label>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        <div
+          className="p-6 border-t border-gray-200 flex items-center justify-end gap-3"
+          style={{ backgroundColor: `${accentColor}10` }}
+        >
           <button
-            className="px-4 py-2 rounded-lg border hover:bg-gray-50"
+            type="button"
             onClick={onClose}
+            className="px-6 py-2 rounded-xl border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-all"
             disabled={saving}
           >
             Cancel
           </button>
           <button
-            className="px-4 py-2 rounded-lg text-white disabled:opacity-60"
-            style={{ backgroundColor: "#00988D" }}
+            type="button"
             onClick={submit}
+            className="px-6 py-2 rounded-xl text-white font-semibold hover:opacity-90 transition-all transform hover:scale-105 disabled:opacity-60"
+            style={{ backgroundColor: accentColor }}
             disabled={selected.length === 0 || saving}
           >
-            {saving ? "Assigning..." : `Assign (${selected.length})`}
+            {saving ? "Saving..." : "Save Assignments"}
           </button>
         </div>
       </div>

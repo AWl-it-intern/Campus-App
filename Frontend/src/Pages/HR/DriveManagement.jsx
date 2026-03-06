@@ -4,31 +4,41 @@ import {
   TrendingUp,
   UserCheck,
   Award,
-  Briefcase,
-  Users as UsersIcon,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   DriveFormCard,
   DrivesTableHeader,
   DriveTableRow,
-  DriveQuickActionCard,
 } from "../../Components/drivemanagement/index.js";
 
 import StatsCard from "../../Components/common/StatsCard.jsx";
 import EmptyState from "../../Components/common/EmptyState.jsx";
+import HrShell from "../../Components/common/HrShell.jsx";
+import SectionNavBar from "../../Components/common/SectionNavBar.jsx";
 import HR_COLORS from "../../theme/hrPalette";
 import useDriveManagement from "../../hooks/useDriveManagement";
 import EditDriveModal from "../../Components/drivemanagement/EditDriveModal.jsx";
 
 export default function DriveManagement({ onDrivesUpdate }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const colors = HR_COLORS;
+
+  const DRIVE_VIEWS = {
+    HOME: "home",
+    CREATE: "create-drive",
+    LIST: "drives",
+  };
+
+  const activeViewRaw = String(searchParams.get("view") || "").trim().toLowerCase();
+  const activeView = Object.values(DRIVE_VIEWS).includes(activeViewRaw)
+    ? activeViewRaw
+    : DRIVE_VIEWS.HOME;
 
   const {
     jobs,
-    jobCount,
     drivesLoading,
     drivesError,
     newDrive,
@@ -103,75 +113,76 @@ export default function DriveManagement({ onDrivesUpdate }) {
     ],
   );
 
+  const driveNavItems = [
+    { key: DRIVE_VIEWS.HOME, label: "Home" },
+    { key: DRIVE_VIEWS.CREATE, label: "Create Drive" },
+    { key: DRIVE_VIEWS.LIST, label: "Drives" },
+  ];
+
+  const viewHeader = {
+    [DRIVE_VIEWS.HOME]: {
+      title: "Drive Management",
+      subtitle:
+        "Create drives, track execution status, and navigate directly to drive-level insights.",
+    },
+    [DRIVE_VIEWS.CREATE]: {
+      title: "Create Drive",
+      subtitle: "Set up a new campus drive with schedule, status, and job openings.",
+    },
+    [DRIVE_VIEWS.LIST]: {
+      title: "Drives",
+      subtitle: "Browse, filter, and manage all campus drives.",
+    },
+  }[activeView];
+
+  const switchDriveView = (nextView) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextView === DRIVE_VIEWS.HOME) {
+      nextParams.delete("view");
+    } else {
+      nextParams.set("view", nextView);
+    }
+    setSearchParams(nextParams);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <button
-          onClick={() => navigate("/HR/dashboard")}
-          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
-          style={{ backgroundColor: colors.stonewash }}
-        >
-          {"<-"} Back to Dashboard
-        </button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: colors.stonewash }}>
-            Drive Management
-          </h1>
-          <p className="text-gray-600">Manage your Campus Drives</p>
+    <HrShell
+      title={viewHeader.title}
+      subtitle={viewHeader.subtitle}
+      topNav={
+        <SectionNavBar
+          items={driveNavItems}
+          activeKey={activeView}
+          onChange={switchDriveView}
+        />
+      }
+    >
+      {drivesError && (
+        <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+          <strong>Warning:</strong> {drivesError}
         </div>
+      )}
 
-        {drivesError && (
-          <div className="mb-6 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
-            <strong>Warning:</strong> {drivesError}
-          </div>
-        )}
+      {activeView === DRIVE_VIEWS.HOME ? (
+        <>
+          <section className="mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {statsData.map((stat, index) => (
+                <StatsCard
+                  key={index}
+                  title={stat.title}
+                  count={stat.count}
+                  icon={stat.icon}
+                  bgColor={stat.bgColor}
+                  lightBg={stat.lightBg}
+                />
+              ))}
+            </div>
+          </section>
+        </>
+      ) : null}
 
-        <section className="mb-8">
-          <div className="mb-4">
-            <h3 className="text-2xl font-bold mb-2" style={{ color: colors.stonewash }}>
-              Quick Actions
-            </h3>
-            <p className="text-gray-600">Manage jobs and candidates related to drives</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DriveQuickActionCard
-              title="Job Management"
-              subtitle={`${jobCount} ${jobCount === 1 ? "job" : "jobs"} available`}
-              icon={Briefcase}
-              color={colors.rainShadow}
-              onClick={() =>
-                navigate("/HR/dashboard/Create-Job", { state: { fromDrives: true } })
-              }
-            />
-            <DriveQuickActionCard
-              title="Candidate Management"
-              subtitle="View and manage all candidates across drives"
-              icon={UsersIcon}
-              color={colors.mossRock}
-              onClick={() =>
-                navigate("/HR/dashboard/Create-Users", { state: { fromDrives: true } })
-              }
-            />
-          </div>
-        </section>
-
-        <section className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {statsData.map((stat, index) => (
-              <StatsCard
-                key={index}
-                title={stat.title}
-                count={stat.count}
-                icon={stat.icon}
-                bgColor={stat.bgColor}
-                lightBg={stat.lightBg}
-              />
-            ))}
-          </div>
-        </section>
-
+      {activeView === DRIVE_VIEWS.CREATE ? (
         <DriveFormCard
           newDrive={newDrive}
           setNewDrive={setNewDrive}
@@ -179,7 +190,9 @@ export default function DriveManagement({ onDrivesUpdate }) {
           jobs={jobs}
           colors={colors}
         />
+      ) : null}
 
+      {activeView === DRIVE_VIEWS.LIST ? (
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <DrivesTableHeader
             filteredDrivesCount={filteredDrives.length}
@@ -265,7 +278,7 @@ export default function DriveManagement({ onDrivesUpdate }) {
             </table>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <EditDriveModal
         isOpen={isEditOpen}
@@ -274,6 +287,6 @@ export default function DriveManagement({ onDrivesUpdate }) {
         onClose={closeEditDrive}
         onSave={saveDriveEdits}
       />
-    </div>
+    </HrShell>
   );
 }

@@ -17,6 +17,13 @@ const EMPTY_NEW_USER = {
   AssignedJobs: [],
 };
 
+const candidateSortKey = (candidate) => {
+  const candidateId = String(candidate?.CandidateID || "").trim().toUpperCase();
+  const match = candidateId.match(/^CND(\d+)$/);
+  if (match) return Number(match[1]);
+  return Number.MAX_SAFE_INTEGER;
+};
+
 export default function useCreateUsers({ drivesProp = [] } = {}) {
   const fileInputRef = useRef(null);
 
@@ -34,6 +41,8 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assignCtx, setAssignCtx] = useState({
     candidateId: null,
+    candidateName: "",
+    candidateEmail: "",
     filterKeys: [],
     filterBy: "JobName",
   });
@@ -134,6 +143,8 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
 
     setAssignCtx({
       candidateId: candidate._id,
+      candidateName: candidate.name || "",
+      candidateEmail: candidate.email || "",
       filterKeys,
       filterBy: "JobName",
     });
@@ -202,29 +213,41 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
     return `${driveCode} - ${collegeName}`.trim();
   };
 
-  const filteredCandidates = candidates.filter((candidate) => {
-    const searchLower = searchTerm.toLowerCase();
-    const name = String(candidate.name || "").toLowerCase();
-    const email = String(candidate.email || "").toLowerCase();
-    const college = String(candidate.college || "").toLowerCase();
+  const filteredCandidates = useMemo(
+    () =>
+      candidates
+        .filter((candidate) => {
+          const searchLower = searchTerm.toLowerCase();
+          const name = String(candidate.name || "").toLowerCase();
+          const email = String(candidate.email || "").toLowerCase();
+          const college = String(candidate.college || "").toLowerCase();
 
-    const matchesSearch =
-      name.includes(searchLower) ||
-      email.includes(searchLower) ||
-      college.includes(searchLower);
+          const matchesSearch =
+            name.includes(searchLower) ||
+            email.includes(searchLower) ||
+            college.includes(searchLower);
 
-    const matchesCollege =
-      collegeFilter === "" || college === collegeFilter.toLowerCase();
+          const matchesCollege =
+            collegeFilter === "" || college === collegeFilter.toLowerCase();
 
-    const jobsArr = Array.isArray(candidate.AssignedJobs)
-      ? candidate.AssignedJobs.map((value) => String(value).toLowerCase())
-      : [];
+          const jobsArr = Array.isArray(candidate.AssignedJobs)
+            ? candidate.AssignedJobs.map((value) => String(value).toLowerCase())
+            : [];
 
-    const matchesJob =
-      jobFilter === "" || jobsArr.includes(jobFilter.toLowerCase());
+          const matchesJob =
+            jobFilter === "" || jobsArr.includes(jobFilter.toLowerCase());
 
-    return matchesSearch && matchesCollege && matchesJob;
-  });
+          return matchesSearch && matchesCollege && matchesJob;
+        })
+        .sort((left, right) => {
+          const idDelta = candidateSortKey(left) - candidateSortKey(right);
+          if (idDelta !== 0) return idDelta;
+          return String(left.name || "").localeCompare(String(right.name || ""), undefined, {
+            sensitivity: "base",
+          });
+        }),
+    [candidates, searchTerm, collegeFilter, jobFilter],
+  );
 
   const exportCandidatesToCsv = () => {
     if (filteredCandidates.length === 0) {
@@ -232,7 +255,7 @@ export default function useCreateUsers({ drivesProp = [] } = {}) {
       return;
     }
 
-    const csvString = buildCandidatesCsv(filteredCandidates);
+    const csvString = buildCandidatesCsv(filteredCandidates, { drives });
     const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
     const fileDate = new Date().toISOString().slice(0, 10);
     const url = URL.createObjectURL(blob);

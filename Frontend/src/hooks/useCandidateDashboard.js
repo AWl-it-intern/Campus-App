@@ -3,6 +3,7 @@ import {
   fetchLoggedInCandidate,
   readSavedCandidateApplication,
 } from "../utils/candidateData";
+import { resolveRecruitmentFlowTemplate } from "../utils/recruitmentFlowTemplates";
 
 const defaultNotifications = [
   {
@@ -24,10 +25,10 @@ const defaultNotifications = [
 
 const defaultProgressItems = [
   { label: "Application Submitted", status: "completed", note: "" },
-  { label: "Resume Screening", status: "completed", note: "" },
+  { label: "Aptitude Test", status: "completed", note: "" },
   { label: "GD Round", status: "completed", note: "" },
   { label: "PI Round", status: "active", note: "PI Scheduled" },
-  { label: "Final Result", status: "locked", note: "" },
+  { label: "Final Selection", status: "locked", note: "" },
 ];
 
 const formatDate = (value) => {
@@ -38,6 +39,88 @@ const formatDate = (value) => {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+};
+
+const getCandidateAssignedRoles = (candidate) => {
+  const assignedJobs = Array.isArray(candidate?.AssignedJobs)
+    ? candidate.AssignedJobs.map((job) => String(job || "").trim()).filter(Boolean)
+    : [];
+  if (assignedJobs.length > 0) return assignedJobs;
+
+  const fallback = String(candidate?.AssignedJob || "").trim();
+  return fallback ? [fallback] : [];
+};
+
+const getCandidateDriveReferences = (candidate) =>
+  [
+    candidate?.driveId,
+    candidate?.assignedDriveId,
+    candidate?.DriveID,
+    candidate?.AssignedDriveId,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value));
+
+const normalizeFlowStages = (rawStages = []) => {
+  const cleaned = Array.from(
+    new Set(
+      (rawStages || [])
+        .map((stage) => String(stage || "").trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (cleaned.length === 0) {
+    return defaultProgressItems.map((item) => item.label);
+  }
+
+  if (!cleaned.some((stage) => stage.toLowerCase().includes("application"))) {
+    return ["Application Submitted", ...cleaned];
+  }
+
+  return cleaned;
+};
+
+const findStageIndex = (stages, matcher) =>
+  stages.findIndex((stage) => matcher(String(stage || "").toLowerCase()));
+
+const resolveActiveIndex = (stages, statusBadge) => {
+  const normalizedStatus = String(statusBadge || "").toLowerCase();
+
+  if (normalizedStatus.includes("shortlisted") || normalizedStatus.includes("regret")) {
+    return Math.max(0, stages.length - 1);
+  }
+
+  const piIndex = findStageIndex(stages, (stage) => stage.includes("pi") || stage.includes("interview"));
+  if (normalizedStatus.includes("pi") && piIndex >= 0) return piIndex;
+
+  const gdIndex = findStageIndex(stages, (stage) => stage.includes("gd") || stage.includes("group"));
+  if (normalizedStatus.includes("gd") && gdIndex >= 0) return gdIndex;
+
+  const aptitudeIndex = findStageIndex(stages, (stage) => stage.includes("aptitude"));
+  if (normalizedStatus.includes("aptitude") && aptitudeIndex >= 0) return aptitudeIndex;
+
+  return Math.min(1, Math.max(0, stages.length - 1));
+};
+
+const buildProgressItems = ({ stages, statusBadge }) => {
+  const flowStages = normalizeFlowStages(stages);
+  const activeIndex = resolveActiveIndex(flowStages, statusBadge);
+  const normalizedStatus = String(statusBadge || "").toLowerCase();
+
+  return flowStages.map((label, index) => {
+    const status =
+      index < activeIndex ? "completed" : index === activeIndex ? "active" : "locked";
+
+    let note = "";
+    if (status === "active") {
+      if (normalizedStatus.includes("shortlisted")) note = "Shortlisted";
+      else if (normalizedStatus.includes("regret")) note = "Regret";
+      else note = statusBadge || "";
+    }
+
+    return { label, status, note };
   });
 };
 
@@ -91,7 +174,7 @@ export default function useCandidateDashboard({ navigate }) {
 
       const jobTitle =
         savedApplication?.meta?.appliedRole ||
-        candidate?.AssignedJob ||
+        getCandidateAssignedRoles(candidate)[0] ||
         "Management Trainee - Sales";
 
       const statusBadge = savedApplication?.interviewDetails
@@ -120,14 +203,24 @@ export default function useCandidateDashboard({ navigate }) {
           ? savedApplication.notifications
           : defaultNotifications;
 
-      const progressItems = [...defaultProgressItems];
-      if (statusBadge === "Shortlisted") {
-        progressItems[3] = { label: "PI Round", status: "completed", note: "Completed" };
-        progressItems[4] = { label: "Final Result", status: "active", note: "Shortlisted" };
-      } else if (statusBadge === "Regret") {
-        progressItems[3] = { label: "PI Round", status: "completed", note: "Completed" };
-        progressItems[4] = { label: "Final Result", status: "active", note: "Regret" };
-      }
+      const assignedRoles = getCandidateAssignedRoles(candidate);
+      const flowTemplate =
+        assignedRoles
+          .map((roleName) =>
+            resolveRecruitmentFlowTemplate({
+              driveRefs: getCandidateDriveReferences(candidate),
+              jobName: roleName,
+            }),
+          )
+          .find(Boolean) ||
+        resolveRecruitmentFlowTemplate({
+          driveRefs: getCandidateDriveReferences(candidate),
+          jobName: jobTitle,
+        });
+      const progressItems = buildProgressItems({
+        statusBadge,
+        stages: flowTemplate?.stages,
+      });
 
       if (isMounted) {
         setDashboardData({

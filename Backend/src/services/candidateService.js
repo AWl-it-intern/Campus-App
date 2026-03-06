@@ -4,14 +4,14 @@ import {
   deleteCandidate,
   printCandidates,
   editcandidate,
-} from "../../db.js";
+} from "../db/index.js";
 
 export async function createCandidate(payload) {
   return insertCandidate(payload);
 }
 
-export async function createManyCandidates(payload) {
-  return insertManyCandidates(payload);
+export async function createManyCandidates(payload, options = {}) {
+  return insertManyCandidates(payload, options);
 }
 
 export async function removeCandidate(candidateId) {

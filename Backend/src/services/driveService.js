@@ -4,7 +4,7 @@ import {
   deleteDrive,
   printDrives,
   editDrive,
-} from "../../db.js";
+} from "../db/index.js";
 
 export async function createDrive(payload) {
   return insertDrive(payload);

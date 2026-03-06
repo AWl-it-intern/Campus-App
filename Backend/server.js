@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import app from "./src/app.js";
-import { connectDB, closeDB } from "./db.js";
+import { connectDB, closeDB } from "./src/db/core.js";
+export * from "./src/db/index.js";
 
 dotenv.config();
 

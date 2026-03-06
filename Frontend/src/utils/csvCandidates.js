@@ -99,18 +99,55 @@ export function parseCsvCandidates(text) {
 const formatCsvCell = (value) =>
   `"${String(value ?? "").replaceAll('"', '""').replaceAll("\n", " ")}"`;
 
-export function buildCandidatesCsv(candidates, { locale = "en-IN" } = {}) {
-  const headers = ["Name", "Email", "College", "AssignedJobs", "DriveID", "CreatedAt"];
+const looksLikeObjectId = (value) => /^[a-fA-F0-9]{24}$/.test(String(value || "").trim());
+
+const buildDriveCodeMap = (drives = []) => {
+  const map = new Map();
+
+  (drives || []).forEach((drive) => {
+    const driveCode = String(drive?.DriveID || "").trim();
+    if (!driveCode) return;
+
+    const keys = [
+      drive?._id,
+      drive?.id,
+      drive?.DriveID,
+      drive?.driveId,
+      drive?.driveID,
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).trim());
+
+    keys.forEach((key) => map.set(key, driveCode));
+  });
+
+  return map;
+};
+
+const resolveDriveCodeForExport = (candidate, driveCodeMap) => {
+  const raw = String(candidate?.driveId || candidate?.DriveID || "").trim();
+  if (!raw) return "";
+
+  const mappedCode = driveCodeMap.get(raw);
+  if (mappedCode) return mappedCode;
+
+  if (looksLikeObjectId(raw)) return "";
+  return raw;
+};
+
+export function buildCandidatesCsv(candidates, { drives = [] } = {}) {
+  const driveCodeMap = buildDriveCodeMap(drives);
+  const headers = ["CandidateID", "Name", "Email", "College", "AssignedJobs", "DriveID"];
 
   const rows = (candidates || []).map((candidate) => [
+    candidate.CandidateID || "",
     candidate.name || "",
     candidate.email || "",
     candidate.college || "",
     JSON.stringify(
       Array.isArray(candidate.AssignedJobs) ? candidate.AssignedJobs : [],
     ),
-    candidate.driveId || candidate.DriveID || "",
-    candidate.createdAt ? new Date(candidate.createdAt).toLocaleString(locale) : "",
+    resolveDriveCodeForExport(candidate, driveCodeMap),
   ]);
 
   return [headers, ...rows]

@@ -6,6 +6,7 @@ import {
   DriveKpiStrip,
   DriveJobBreakdown,
 } from "../../Components/drivemanagement/drivecomponents";
+import HrShell from "../../Components/common/HrShell.jsx";
 import HR_COLORS from "../../theme/hrPalette";
 import useDrivePage from "../../hooks/useDrivePage";
 
@@ -16,64 +17,59 @@ export default function DrivePage() {
   const colors = HR_COLORS;
 
   const { drive, jobRows, loading, error } = useDrivePage({ driveId });
+  const backToDrives = (
+    <button
+      onClick={() => navigate("/HR/dashboard/Drives")}
+      className="px-4 py-2 rounded-lg text-white text-sm font-semibold inline-flex items-center gap-2 hover:opacity-90 transition-all shadow-sm"
+      style={{ backgroundColor: colors.stonewash }}
+    >
+      <ArrowLeft size={16} />
+      Back to Drive Management
+    </button>
+  );
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-        <div className="text-center">
+      <HrShell
+        title="Drive Details"
+        subtitle="Job-wise candidate and panelist performance for this drive."
+        headerActions={backToDrives}
+      >
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
           <Loader2 className="animate-spin mx-auto mb-3 text-gray-500" size={36} />
           <p className="text-gray-600 font-medium">Loading drive details...</p>
         </div>
-      </div>
+      </HrShell>
     );
   }
 
   if (error || !drive) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <button
-          onClick={() => navigate("/HR/dashboard/Drives")}
-          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg inline-flex items-center gap-2"
-          style={{ backgroundColor: colors.stonewash }}
-        >
-          <ArrowLeft size={18} />
-          Back to Drive Management
-        </button>
-
+      <HrShell
+        title="Drive Details"
+        subtitle="Job-wise candidate and panelist performance for this drive."
+        headerActions={backToDrives}
+      >
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-red-100 p-8 text-center">
           <AlertTriangle className="mx-auto mb-4 text-red-500" size={36} />
           <h2 className="text-xl font-bold text-red-600 mb-2">Unable to open drive</h2>
           <p className="text-gray-600">{error || "Drive not found"}</p>
         </div>
-      </div>
+      </HrShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <button
-          onClick={() => navigate("/HR/dashboard/Drives")}
-          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg inline-flex items-center gap-2"
-          style={{ backgroundColor: colors.stonewash }}
-        >
-          <ArrowLeft size={18} />
-          Back to Drive Management
-        </button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: colors.stonewash }}>
-            Drive Details
-          </h1>
-          <p className="text-gray-600">
-            Job-wise candidate count and assigned panelists for this campus drive
-          </p>
-        </div>
-
-        <DriveOverviewCard drive={drive} colors={colors} />
-        <DriveKpiStrip drive={drive} jobRows={jobRows} colors={colors} />
-        <DriveJobBreakdown jobRows={jobRows} colors={colors} />
-      </div>
-    </div>
+    <HrShell
+      title={`Drive ${drive.DriveID || "Details"}`}
+      subtitle="Job-wise candidate count and assigned panelists for this campus drive."
+      headerActions={backToDrives}
+    >
+      <DriveOverviewCard drive={drive} colors={colors} />
+      <DriveKpiStrip drive={drive} jobRows={jobRows} colors={colors} />
+      <DriveJobBreakdown drive={drive} jobRows={jobRows} colors={colors} />
+    </HrShell>
   );
 }
+
+

@@ -1,5 +1,6 @@
 // components/drivemanagement/DriveFormCard.jsx
 import { Plus, MapPin, Calendar } from "lucide-react";
+import MultiSelectDropdown from "../common/MultiSelectDropdown.jsx";
 
 /**
  * DriveFormCard Component
@@ -18,14 +19,7 @@ export const DriveFormCard = ({
   jobs,
   colors,
 }) => {
-  const jobOptions = [...new Set(jobs.map((job) => job.JobName).filter(Boolean))];
-
-  const handleJobsOpeningChange = (e) => {
-    const selectedValues = Array.from(e.target.selectedOptions, (option) =>
-      option.value,
-    );
-    setNewDrive({ ...newDrive, JobsOpening: selectedValues });
-  };
+  const jobOptions = [...new Set(jobs.map((job) => job.JobName).filter(Boolean))].sort();
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
@@ -137,27 +131,23 @@ export const DriveFormCard = ({
 
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Jobs Opening * (multi-select)
+          Jobs Opening *
         </label>
-        <select
-          multiple
-          className="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none transition-all bg-white min-h-[120px]"
-          value={Array.isArray(newDrive.JobsOpening) ? newDrive.JobsOpening : []}
-          onChange={handleJobsOpeningChange}
-        >
-          {jobOptions.map((jobName) => (
-            <option key={jobName} value={jobName}>
-              {jobName}
-            </option>
-          ))}
-        </select>
+        <MultiSelectDropdown
+          options={jobOptions}
+          selectedValues={Array.isArray(newDrive.JobsOpening) ? newDrive.JobsOpening : []}
+          onChange={(values) => setNewDrive({ ...newDrive, JobsOpening: values })}
+          placeholder="Select one or more job openings"
+          emptyMessage="No jobs available in Job table."
+          accentColor={colors.rainShadow}
+        />
         {jobOptions.length === 0 ? (
           <p className="text-xs text-red-500 mt-2">
             No jobs available in Job table.
           </p>
         ) : (
           <p className="text-xs text-gray-500 mt-2">
-            Only jobs available in Job table are listed. Use Ctrl/Cmd to select multiple.
+            Choose multiple jobs from the dropdown list.
           </p>
         )}
       </div>

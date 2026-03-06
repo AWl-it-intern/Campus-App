@@ -37,7 +37,16 @@ export async function insertManyCandidatesHandler(req, res) {
       });
     }
 
-    const result = await createManyCandidates(payload);
+    const options = Array.isArray(req.body)
+      ? {}
+      : {
+          defaultDriveId: req.body?.defaultDriveId || req.body?.driveId || req.body?.DriveID,
+          defaultJobName: req.body?.defaultJobName || req.body?.jobName,
+          forceDriveId: req.body?.forceDriveId || req.body?.forceDriveID,
+          forceJobName: req.body?.forceJobName,
+        };
+
+    const result = await createManyCandidates(payload, options);
     res.status(201).json({
       success: true,
       insertedCount: result.insertedCount || 0,
@@ -78,7 +87,9 @@ export async function printCandidatesHandler(req, res) {
   try {
     const limit =
       req.query.limit !== undefined ? Number(req.query.limit) : 0;
-    const data = await listCandidates({ limit, debug: true });
+    const job = typeof req.query.job === "string" ? req.query.job : undefined;
+    const college = typeof req.query.college === "string" ? req.query.college : undefined;
+    const data = await listCandidates({ limit, job, college, debug: true });
 
     res.json({
       success: true,

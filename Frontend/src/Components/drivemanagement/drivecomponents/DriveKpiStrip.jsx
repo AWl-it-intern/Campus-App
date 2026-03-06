@@ -1,5 +1,7 @@
 export default function DriveKpiStrip({ drive, jobRows, colors }) {
-  const totalCandidates = Number(drive.NumberOfCandidates) || 0;
+  const totalCandidates = Array.isArray(drive.CandidateIDs)
+    ? drive.CandidateIDs.length
+    : Number(drive.NumberOfCandidates) || 0;
   const totalSelected = Number(drive.Selected) || 0;
   const totalJobs = jobRows.length;
   const panelistCount = new Set(

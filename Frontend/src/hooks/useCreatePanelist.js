@@ -271,25 +271,35 @@ export default function useCreatePanelist({ onPanelistsUpdate } = {}) {
     [panelists],
   );
 
-  const filteredPanelists = panelists.filter((panelist) => {
-    const query = searchTerm.toLowerCase();
+  const filteredPanelists = useMemo(
+    () =>
+      panelists
+        .filter((panelist) => {
+          const query = searchTerm.toLowerCase();
 
-    const matchesSearch =
-      String(panelist.name || "").toLowerCase().includes(query) ||
-      String(panelist.email || "").toLowerCase().includes(query) ||
-      String(panelist.designation || "").toLowerCase().includes(query);
+          const matchesSearch =
+            String(panelist.name || "").toLowerCase().includes(query) ||
+            String(panelist.email || "").toLowerCase().includes(query) ||
+            String(panelist.designation || "").toLowerCase().includes(query);
 
-    const matchesExpertise =
-      expertiseFilter === "" || panelist.expertise === expertiseFilter;
+          const matchesExpertise =
+            expertiseFilter === "" || panelist.expertise === expertiseFilter;
 
-    const isAssigned = (panelist.assignedJobs || []).length > 0;
-    const matchesAssignment =
-      assignmentFilter === "all" ||
-      (assignmentFilter === "assigned" && isAssigned) ||
-      (assignmentFilter === "unassigned" && !isAssigned);
+          const isAssigned = (panelist.assignedJobs || []).length > 0;
+          const matchesAssignment =
+            assignmentFilter === "all" ||
+            (assignmentFilter === "assigned" && isAssigned) ||
+            (assignmentFilter === "unassigned" && !isAssigned);
 
-    return matchesSearch && matchesExpertise && matchesAssignment;
-  });
+          return matchesSearch && matchesExpertise && matchesAssignment;
+        })
+        .sort((left, right) =>
+          String(left.name || "").localeCompare(String(right.name || ""), undefined, {
+            sensitivity: "base",
+          }),
+        ),
+    [panelists, searchTerm, expertiseFilter, assignmentFilter],
+  );
 
   return {
     fetchedCandidates,

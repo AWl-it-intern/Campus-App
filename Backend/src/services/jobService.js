@@ -1,4 +1,4 @@
-import { insertJob, deleteJob, printJobs } from "../../db.js";
+import { insertJob, deleteJob, printJobs } from "../db/index.js";
 
 export async function createJob(payload) {
   return insertJob(payload);

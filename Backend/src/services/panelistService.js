@@ -3,7 +3,7 @@ import {
   deletePanelist,
   updatePanelist,
   printPanelists,
-} from "../../db.js";
+} from "../db/index.js";
 
 export async function createPanelist(payload) {
   return insertPanelist(payload);

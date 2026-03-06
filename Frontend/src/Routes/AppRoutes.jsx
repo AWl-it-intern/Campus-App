@@ -12,6 +12,10 @@ import CreateJob from "../Pages/HR/CreateJob";
 import CreateUsers from "../Pages/HR/CreateUsers";
 import CreatePanelist from "../Pages/HR/CreatePanelist";
 import DriveCandidatesPage from "../Pages/HR/DriveCandidatesPage";
+import DriveJobCandidateScoreboardPage from "../Pages/HR/DriveJobCandidateScoreboardPage";
+import RecruitmentPipeline from "../Pages/HR/RecruitmentPipeline";
+import OfferApprovals from "../Pages/HR/OfferApprovals";
+import AptitudeTestManagement from "../Pages/HR/AptitudeTestManagement";
 
 export default function AppRoutes() {
   return (
@@ -46,8 +50,25 @@ export default function AppRoutes() {
         <Route path="/HR/dashboard/Drives/:driveId" element={<DrivePage />} />
         <Route path="/HR/dashboard/Create-Job" element={<CreateJob />} />
         <Route
+          path="/HR/dashboard/Recruitment-Pipeline"
+          element={<RecruitmentPipeline />}
+        />
+        <Route
+          path="/HR/dashboard/Aptitude-Test-Management"
+          element={<AptitudeTestManagement />}
+        />
+        <Route path="/HR/dashboard/Offer-Approvals" element={<OfferApprovals />} />
+        <Route
           path="/HR/dashboard/drive/:driveId/job/:jobId/candidates"
           element={<DriveCandidatesPage />}
+        />
+        <Route
+          path="/HR/dashboard/Drive-Job-Scoreboard"
+          element={<DriveJobCandidateScoreboardPage />}
+        />
+        <Route
+          path="/HR/dashboard/drive/:driveId/job/:jobId/scoreboard"
+          element={<DriveJobCandidateScoreboardPage />}
         />
       </Route>
 

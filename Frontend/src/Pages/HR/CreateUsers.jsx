@@ -1,5 +1,6 @@
-import { Users } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { Users, Briefcase, AlertTriangle, MapPin } from "lucide-react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   UserFormCard,
@@ -9,17 +10,33 @@ import {
 import AssignJobModal from "../../Components/users/AssignJobModal.jsx";
 import EditCandidateModal from "../../Components/users/EditCandidateModal.jsx";
 import EmptyState from "../../Components/common/EmptyState.jsx";
+import StatsCard from "../../Components/common/StatsCard.jsx";
+import HrShell from "../../Components/common/HrShell.jsx";
+import SectionNavBar from "../../Components/common/SectionNavBar.jsx";
 import useCreateUsers from "../../hooks/useCreateUsers";
 import HR_COLORS from "../../theme/hrPalette";
 
 export default function CreateUsers({ drives: drivesProp = [] }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const fromDrives = location.state?.fromDrives || false;
   const colors = HR_COLORS;
 
+  const CANDIDATE_VIEWS = {
+    HOME: "home",
+    IMPORT: "import-candidates",
+    LIST: "candidates-list",
+  };
+
+  const activeViewRaw = String(searchParams.get("view") || "").trim().toLowerCase();
+  const activeView = Object.values(CANDIDATE_VIEWS).includes(activeViewRaw)
+    ? activeViewRaw
+    : CANDIDATE_VIEWS.HOME;
+
   const {
     fileInputRef,
+    candidates,
     jobs,
     drives,
     importing,
@@ -52,37 +69,145 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
     saveCandidateEdits,
   } = useCreateUsers({ drivesProp });
 
+  const getAssignedJobs = (candidate) => {
+    if (Array.isArray(candidate?.AssignedJobs)) {
+      return candidate.AssignedJobs.filter(Boolean).map(String);
+    }
+
+    return String(candidate?.AssignedJob || "")
+      .split(/[;,]/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+  };
+
+  const assignedCandidatesCount = useMemo(
+    () => (candidates || []).filter((candidate) => getAssignedJobs(candidate).length > 0).length,
+    [candidates],
+  );
+
+  const statsData = useMemo(
+    () => [
+      {
+        title: "Total Candidates",
+        count: (candidates || []).length,
+        icon: Users,
+        bgColor: colors.rainShadow,
+        lightBg: "#E8F9F0",
+      },
+      {
+        title: "Assigned to Jobs",
+        count: assignedCandidatesCount,
+        icon: Briefcase,
+        bgColor: colors.softFlow,
+        lightBg: "#E6F9F5",
+      },
+      {
+        title: "Pending Assignment",
+        count: Math.max(0, (candidates || []).length - assignedCandidatesCount),
+        icon: AlertTriangle,
+        bgColor: colors.marigoldFlame,
+        lightBg: "#FFF9E6",
+      },
+      {
+        title: "Colleges Covered",
+        count: uniqueColleges.length,
+        icon: MapPin,
+        bgColor: colors.mossRock,
+        lightBg: "#E8F9E8",
+      },
+    ],
+    [
+      candidates,
+      assignedCandidatesCount,
+      uniqueColleges.length,
+      colors.rainShadow,
+      colors.softFlow,
+      colors.marigoldFlame,
+      colors.mossRock,
+    ],
+  );
+
+  const candidateNavItems = [
+    { key: CANDIDATE_VIEWS.HOME, label: "Home" },
+    { key: CANDIDATE_VIEWS.IMPORT, label: "Import Candidates" },
+    { key: CANDIDATE_VIEWS.LIST, label: "Candidates List" },
+  ];
+
+  const viewHeader = {
+    [CANDIDATE_VIEWS.HOME]: {
+      title: "Candidate Management",
+      subtitle:
+        "Track candidate pipeline health, assignment readiness, and college coverage at a glance.",
+    },
+    [CANDIDATE_VIEWS.IMPORT]: {
+      title: "Import Candidates",
+      subtitle: "Create individual candidates or import bulk candidates from CSV.",
+    },
+    [CANDIDATE_VIEWS.LIST]: {
+      title: "Candidates List",
+      subtitle: "Search, filter, assign jobs, and maintain candidate records.",
+    },
+  }[activeView];
+
+  const switchCandidateView = (nextView) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextView === CANDIDATE_VIEWS.HOME) {
+      nextParams.delete("view");
+    } else {
+      nextParams.set("view", nextView);
+    }
+    setSearchParams(nextParams);
+  };
+
+  const headerActions = fromDrives ? (
+    <button
+      onClick={() => navigate("/HR/dashboard/Drives")}
+      className="px-4 py-2 rounded-lg text-white text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
+      style={{ backgroundColor: colors.stonewash }}
+    >
+      Back to Drive Management
+    </button>
+  ) : null;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <button
-          onClick={() =>
-            navigate(fromDrives ? "/HR/dashboard/Drives" : "/HR/dashboard")
-          }
-          className="mb-6 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all shadow-lg"
-          style={{ backgroundColor: colors.stonewash }}
-        >
-           Back to {fromDrives ? "Drive Management" : "Dashboard"}
-        </button>
-
-        <div className="mb-8">
-          <h1
-            className="text-3xl font-bold mb-2"
-            style={{ color: colors.stonewash }}
-          >
-            Manage Candidates
-          </h1>
-          <p className="text-gray-600">Create and manage candidate profiles</p>
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,text/csv"
-          className="hidden"
-          onChange={onFileChange}
+    <HrShell
+      title={viewHeader.title}
+      subtitle={viewHeader.subtitle}
+      headerActions={headerActions}
+      topNav={
+        <SectionNavBar
+          items={candidateNavItems}
+          activeKey={activeView}
+          onChange={switchCandidateView}
         />
+      }
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={onFileChange}
+      />
 
+      {activeView === CANDIDATE_VIEWS.HOME ? (
+        <section className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {statsData.map((stat, index) => (
+              <StatsCard
+                key={index}
+                title={stat.title}
+                count={stat.count}
+                icon={stat.icon}
+                bgColor={stat.bgColor}
+                lightBg={stat.lightBg}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeView === CANDIDATE_VIEWS.IMPORT ? (
         <div className="relative">
           <UserFormCard
             newUser={newUser}
@@ -93,8 +218,10 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
             colors={colors}
           />
         </div>
+      ) : null}
 
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden ">
+      {activeView === CANDIDATE_VIEWS.LIST ? (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <UsersTableHeader
             filteredCandidates={filteredCandidates.length}
             searchTerm={searchTerm}
@@ -167,10 +294,13 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
               isOpen={isAssignOpen}
               onClose={() => setIsAssignOpen(false)}
               candidateId={assignCtx.candidateId}
+              candidateName={assignCtx.candidateName}
+              candidateEmail={assignCtx.candidateEmail}
               allJobs={jobs}
               filterKeys={assignCtx.filterKeys}
               filterBy={assignCtx.filterBy}
               onAssigned={handleAssigned}
+              colors={colors}
             />
 
             <EditCandidateModal
@@ -182,7 +312,7 @@ export default function CreateUsers({ drives: drivesProp = [] }) {
             />
           </div>
         </div>
-      </div>
-    </div>
+      ) : null}
+    </HrShell>
   );
 }

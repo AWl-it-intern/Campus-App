@@ -5,6 +5,12 @@ import { fetchJobs } from "../services/jobsService";
 
 const safeLower = (value) => String(value || "").trim().toLowerCase();
 
+const candidateSortKey = (candidate) => {
+  const candidateId = String(candidate?.CandidateID || "").trim().toUpperCase();
+  const match = candidateId.match(/^CND(\d+)$/);
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+};
+
 const splitAssignedJobs = (candidate) => {
   if (Array.isArray(candidate?.AssignedJobs)) {
     return candidate.AssignedJobs.map((job) => String(job || "").trim()).filter(Boolean);
@@ -25,6 +31,7 @@ export default function useDriveCandidates({ jobName, driveId }) {
   const [candidates, setCandidates] = useState([]);
   const [drives, setDrives] = useState([]);
   const [jobs, setJobs] = useState([]);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,7 +72,7 @@ export default function useDriveCandidates({ jobName, driveId }) {
     return () => {
       isMounted = false;
     };
-  }, [jobName, driveId]);
+  }, [jobName, driveId, refreshToken]);
 
   const drivesMap = useMemo(
     () =>
@@ -111,28 +118,36 @@ export default function useDriveCandidates({ jobName, driveId }) {
         .map((value) => String(value).toLowerCase()),
     );
 
-    return candidates.filter((candidate) => {
-      const jobs = splitAssignedJobs(candidate).map((job) => safeLower(job));
-      const hasJob = jobs.includes(jobLower);
+    return candidates
+      .filter((candidate) => {
+        const jobs = splitAssignedJobs(candidate).map((job) => safeLower(job));
+        const hasJob = jobs.includes(jobLower);
 
-      const candidateKeys = [
-        candidate.driveId,
-        candidate.DriveID,
-        candidate.assignedDriveId,
-        candidate.AssignedDriveId,
-      ]
-        .filter(Boolean)
-        .map((value) => String(value).toLowerCase());
+        const candidateKeys = [
+          candidate.driveId,
+          candidate.DriveID,
+          candidate.assignedDriveId,
+          candidate.AssignedDriveId,
+        ]
+          .filter(Boolean)
+          .map((value) => String(value).toLowerCase());
 
-      const matchesDrive =
-        driveKeySet.size === 0
-          ? true
-          : candidateKeys.some((key) => driveKeySet.has(key));
+        const matchesDrive =
+          driveKeySet.size === 0
+            ? true
+            : candidateKeys.some((key) => driveKeySet.has(key));
 
-      const matchesAssignedList = assignedIds.includes(String(candidate._id));
+        const matchesAssignedList = assignedIds.includes(String(candidate._id));
 
-      return matchesDrive && (matchesAssignedList || hasJob);
-    });
+        return matchesDrive && (matchesAssignedList || hasJob);
+      })
+      .sort((left, right) => {
+        const byId = candidateSortKey(left) - candidateSortKey(right);
+        if (byId !== 0) return byId;
+        return String(left.name || "").localeCompare(String(right.name || ""), undefined, {
+          sensitivity: "base",
+        });
+      });
   }, [candidates, jobName, driveId, drives, jobs]);
 
   return {
@@ -141,5 +156,6 @@ export default function useDriveCandidates({ jobName, driveId }) {
     filteredCandidates,
     getDriveName,
     splitAssignedJobs,
+    reload: () => setRefreshToken((value) => value + 1),
   };
 }

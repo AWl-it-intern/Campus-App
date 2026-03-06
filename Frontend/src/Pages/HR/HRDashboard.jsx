@@ -1,13 +1,15 @@
-import { Users, UsersRound, LogOut, BriefcaseBusinessIcon, MapPin } from "lucide-react";
+import { Users, UsersRound, BriefcaseBusinessIcon, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import StatsCard from "../../Components/common/StatsCard";
 import QuickActionCard from "../../Components/dashboard/QuickActionCard";
+import HrShell from "../../Components/common/HrShell.jsx";
 import HR_COLORS from "../../theme/hrPalette";
 import useHrDashboard from "../../hooks/useHrDashboard";
 
 const HRDashboard = () => {
   const navigate = useNavigate();
+  const showQuickActions = false;
 
   const { candidateCount, panelistCount, totalDriveCount } = useHrDashboard();
 
@@ -73,106 +75,54 @@ const HRDashboard = () => {
     },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("hr_auth");
-    localStorage.removeItem("hr_email");
-    navigate("/login");
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav
-        className="shadow-md sticky top-0 z-40"
-        style={{ backgroundColor: colors.primary.stonewash }}
-      >
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: colors.primary.softFlow }}
-              >
-                <Users size={28} color={colors.primary.stonewash} />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">AWL Recruit</h1>
-                <p className="text-sm text-white opacity-80">HR Dashboard</p>
-              </div>
-            </div>
+    <HrShell
+      title="HR Dashboard"
+      subtitle="Monitor hiring activity and move quickly across recruitment operations."
+    >
+      <section className="mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {statsData.map((stat, index) => (
+            <StatsCard
+              key={index}
+              title={stat.title}
+              count={stat.count}
+              icon={stat.icon}
+              bgColor={stat.bgColor}
+              lightBg={stat.lightBg}
+            />
+          ))}
+        </div>
+      </section>
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-[#FFAD53] hover:bg-opacity-20 text-white transition-all border-2 cursor-pointer"
-            >
-              <LogOut size={20} />
-              <span className="font-medium">Logout</span>
-            </button>
+      {showQuickActions ? (
+        <section className="mb-8">
+          <div className="mb-6">
+            <h3 className="text-2xl font-bold mb-2" style={{ color: colors.primary.stonewash }}>
+              Quick Actions
+            </h3>
+            <p className="text-gray-600">Manage your recruitment process efficiently</p>
           </div>
-        </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div>
-          <section className="mb-8">
-            <h2
-              className="text-3xl font-bold mb-2"
-              style={{ color: colors.primary.stonewash }}
-            >
-              Welcome HR!
-            </h2>
-            <p className="text-gray-600">
-              Here's what's happening with your recruitment today.
-            </p>
-          </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quickActions.map((action, index) => (
+              <QuickActionCard
+                key={index}
+                title={action.title}
+                subtitle={action.subtitle}
+                icon={action.icon}
+                color={action.color}
+                action={action.action}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-          <section className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {statsData.map((stat, index) => (
-                <StatsCard
-                  key={index}
-                  title={stat.title}
-                  count={stat.count}
-                  icon={stat.icon}
-                  bgColor={stat.bgColor}
-                  lightBg={stat.lightBg}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-8">
-            <div className="mb-6">
-              <h3
-                className="text-2xl font-bold mb-2"
-                style={{ color: colors.primary.stonewash }}
-              >
-                Quick Actions
-              </h3>
-              <p className="text-gray-600">
-                Manage your recruitment process efficiently
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {quickActions.map((action, index) => (
-                <QuickActionCard
-                  key={index}
-                  title={action.title}
-                  subtitle={action.subtitle}
-                  icon={action.icon}
-                  color={action.color}
-                  action={action.action}
-                />
-              ))}
-            </div>
-          </section>
-
-          <footer className="text-center text-gray-600 text-sm py-4">
-            Copyright 2026 Campus Recruit. All rights reserved.
-          </footer>
-        </div>
-      </main>
-    </div>
+      <footer className="text-center text-gray-600 text-sm py-4">
+        Copyright 2026 Campus Recruit. All rights reserved.
+      </footer>
+    </HrShell>
   );
 };
 

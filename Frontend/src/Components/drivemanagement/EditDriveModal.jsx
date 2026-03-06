@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MultiSelectDropdown from "../common/MultiSelectDropdown.jsx";
 
 const getFirstDefined = (...values) =>
   values.find((value) => value !== undefined && value !== null);
@@ -51,11 +52,11 @@ export default function EditDriveModal({
     EndDate: "",
     JobsOpening: [],
     Status: "Draft",
-    NumberOfCandidates: 0,
   });
 
   useEffect(() => {
     if (drive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         DriveID: String(
           getFirstDefined(drive.DriveID, drive.driveId, drive.driveID, ""),
@@ -79,29 +80,17 @@ export default function EditDriveModal({
           ),
         ),
         Status: normalizeStatus(getFirstDefined(drive.Status, drive.status, "Draft")),
-        NumberOfCandidates:
-          Number(
-            getFirstDefined(
-              drive.NumberOfCandidates,
-              drive.numberOfCandidates,
-              drive.CandidateCount,
-              drive.candidateCount,
-              0,
-            ),
-          ) || 0,
       });
     }
   }, [drive]);
 
   const jobOptions = useMemo(
-    () => [...new Set((jobs || []).map((job) => job.JobName).filter(Boolean))],
+    () =>
+      [...new Set((jobs || []).map((job) => job.JobName).filter(Boolean))].sort(
+        (left, right) => left.localeCompare(right, undefined, { sensitivity: "base" }),
+      ),
     [jobs],
   );
-
-  const handleJobsOpeningChange = (event) => {
-    const selectedValues = Array.from(event.target.selectedOptions, (option) => option.value);
-    setFormData((prev) => ({ ...prev, JobsOpening: selectedValues }));
-  };
 
   const handleSave = () => {
     if (!drive) return;
@@ -112,7 +101,6 @@ export default function EditDriveModal({
       EndDate: formData.EndDate,
       JobsOpening: Array.isArray(formData.JobsOpening) ? formData.JobsOpening : [],
       Status: formData.Status,
-      NumberOfCandidates: Number(formData.NumberOfCandidates) || 0,
     });
   };
 
@@ -202,34 +190,22 @@ export default function EditDriveModal({
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Candidates
-              </label>
-              <input
-                value={formData.NumberOfCandidates}
-                disabled
-                className="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 bg-gray-50"
-              />
-            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Jobs Opening
             </label>
-            <select
-              multiple
-              value={formData.JobsOpening}
-              onChange={handleJobsOpeningChange}
-              className="w-full border-2 border-gray-200 rounded-lg px-4 py-2.5 min-h-[120px]"
-            >
-              {jobOptions.map((jobName) => (
-                <option key={jobName} value={jobName}>
-                  {jobName}
-                </option>
-              ))}
-            </select>
+            <MultiSelectDropdown
+              options={jobOptions}
+              selectedValues={formData.JobsOpening}
+              onChange={(values) =>
+                setFormData((prev) => ({ ...prev, JobsOpening: values }))
+              }
+              placeholder="Select one or more job openings"
+              emptyMessage="No jobs available in Job table."
+              accentColor="#00988D"
+            />
           </div>
         </div>
 

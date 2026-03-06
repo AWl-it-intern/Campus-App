@@ -1,6 +1,10 @@
 import { Pencil } from "lucide-react";
 
 export function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }) {
+  const candidateCount = Array.isArray(drive?.CandidateIDs)
+    ? drive.CandidateIDs.length
+    : Number(drive?.NumberOfCandidates) || 0;
+
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"  onClick={() => onRowClick?.(drive)} >
       <td className="px-6 py-4">
@@ -26,7 +30,7 @@ export function DriveTableRow({ drive, deleteDrive, colors, onRowClick, onEdit }
         </span>
       </td>
       <td className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
-        {drive.NumberOfCandidates ?? 0}
+        {candidateCount}
       </td>
       <td className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
         {drive.Selected ?? 0}

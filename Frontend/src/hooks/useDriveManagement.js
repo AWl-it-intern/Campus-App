@@ -54,6 +54,51 @@ const normalizeDateForInput = (value) => {
   return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
 };
 
+const normalizeCandidateIds = (doc = {}) => {
+  const rawCandidateIds = getFirstDefined(
+    doc.CandidateIDs,
+    doc.candidateIDs,
+    doc.candidateIds,
+    [],
+  );
+
+  if (!Array.isArray(rawCandidateIds)) {
+    return [];
+  }
+
+  return [...new Set(rawCandidateIds.map((item) => String(item || "").trim()).filter(Boolean))];
+};
+
+const resolveDriveCandidateCount = (doc = {}, candidateIds = []) => {
+  const hasAssignedCandidateIds =
+    Array.isArray(doc.CandidateIDs) ||
+    Array.isArray(doc.candidateIDs) ||
+    Array.isArray(doc.candidateIds);
+
+  if (hasAssignedCandidateIds) {
+    return candidateIds.length;
+  }
+
+  return (
+    Number(
+      getFirstDefined(
+        doc.NumberOfCandidates,
+        doc.numberOfCandidates,
+        doc.CandidateCount,
+        doc.candidateCount,
+        0,
+      ),
+    ) || 0
+  );
+};
+
+const getDriveCandidateCount = (drive = {}) => {
+  if (Array.isArray(drive.CandidateIDs)) {
+    return drive.CandidateIDs.length;
+  }
+  return Number(drive.NumberOfCandidates) || 0;
+};
+
 const normalizeDrive = (doc = {}) => {
   const normalizedId = getFirstDefined(doc.id, doc._id, doc.driveId, doc.DriveID, "");
   const normalizedDriveId = getFirstDefined(
@@ -83,13 +128,8 @@ const normalizeDrive = (doc = {}) => {
     [],
   );
   const normalizedStatus = getFirstDefined(doc.Status, doc.status, "Draft");
-  const normalizedCandidateCount = getFirstDefined(
-    doc.NumberOfCandidates,
-    doc.numberOfCandidates,
-    doc.CandidateCount,
-    doc.candidateCount,
-    0,
-  );
+  const normalizedCandidateIds = normalizeCandidateIds(doc);
+  const normalizedCandidateCount = resolveDriveCandidateCount(doc, normalizedCandidateIds);
   const normalizedSelected = getFirstDefined(
     doc.Selected,
     doc.selected,
@@ -107,6 +147,7 @@ const normalizeDrive = (doc = {}) => {
     EndDate: normalizeDateForInput(normalizedEndDate),
     JobsOpening: normalizeJobsOpening(normalizedJobs),
     Status: normalizeStatus(normalizedStatus),
+    CandidateIDs: normalizedCandidateIds,
     NumberOfCandidates: Number(normalizedCandidateCount) || 0,
     Selected: Number(normalizedSelected) || 0,
   };
@@ -182,7 +223,6 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
       EndDate: newDrive.EndDate,
       JobsOpening: Array.isArray(newDrive.JobsOpening) ? newDrive.JobsOpening : [],
       Status: newDrive.Status || "Draft",
-      NumberOfCandidates: 0,
       Selected: 0,
     };
 
@@ -341,13 +381,18 @@ export default function useDriveManagement({ onDrivesUpdate } = {}) {
           collegeFilter === "" || String(drive.CollegeName || "") === collegeFilter;
 
         return matchesSearch && matchesJob && matchesStatus && matchesCollege;
-      }),
+      }).sort((left, right) =>
+        String(left.DriveID || "").localeCompare(String(right.DriveID || ""), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      ),
     [drives, searchTerm, selectedJob, statusFilter, collegeFilter],
   );
 
   const stats = useMemo(() => {
     const totalCandidates = filteredDrives.reduce(
-      (sum, drive) => sum + (Number(drive.NumberOfCandidates) || 0),
+      (sum, drive) => sum + getDriveCandidateCount(drive),
       0,
     );
     const totalSelected = filteredDrives.reduce(

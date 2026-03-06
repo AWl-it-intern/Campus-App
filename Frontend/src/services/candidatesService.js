@@ -15,8 +15,11 @@ export async function deleteCandidate(candidateId) {
   return data;
 }
 
-export async function bulkInsertCandidates(candidates) {
-  const { data } = await apiClient.post("/candidate/bulk", { candidates });
+export async function bulkInsertCandidates(candidates, options = {}) {
+  const { data } = await apiClient.post("/candidate/bulk", {
+    candidates,
+    ...options,
+  });
   return data;
 }
 

@@ -1,14 +1,14 @@
 import { Briefcase, Users, UserCheck } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
-export default function DriveJobBreakdown({ jobRows, colors }) {
+export default function DriveJobBreakdown({ jobRows, colors, drive }) {
   const navigate = useNavigate();
 const { driveId } = useParams();
 
 const handleJobClick = (job) => {
   const jobKey = encodeURIComponent(job.jobName || "");
   navigate(`/HR/dashboard/drive/${driveId}/job/${jobKey}/candidates`, {
-    state: { JobName: job.jobName },
+    state: { JobName: job.jobName, CollegeName: drive?.CollegeName || "" },
   });
 };
 

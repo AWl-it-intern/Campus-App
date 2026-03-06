@@ -48,6 +48,14 @@ const createEmptyPgDegree = () => ({
   cgpa: "",
 });
 
+const getCandidateAssignedRole = (candidate) => {
+  const assignedJobs = Array.isArray(candidate?.AssignedJobs)
+    ? candidate.AssignedJobs.map((job) => String(job || "").trim()).filter(Boolean)
+    : [];
+  if (assignedJobs.length > 0) return assignedJobs[0];
+  return String(candidate?.AssignedJob || "").trim();
+};
+
 export default function useCandidateApplicationForm({ navigate }) {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +114,8 @@ export default function useCandidateApplicationForm({ navigate }) {
               localStorage.getItem("candidate_email") ||
               "";
             baseForm.meta.institute = baseForm.meta.institute || candidate.college || "";
-            baseForm.meta.appliedRole = baseForm.meta.appliedRole || candidate.AssignedJob || "";
+            baseForm.meta.appliedRole =
+              baseForm.meta.appliedRole || getCandidateAssignedRole(candidate) || "";
             baseForm.meta.applicationId =
               baseForm.meta.applicationId || `CAND-${candidateIdSuffix || "0001"}`;
           }
